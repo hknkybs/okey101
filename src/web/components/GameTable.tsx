@@ -38,6 +38,7 @@ export function GameTable({ view }: { view: ClientGameView }) {
   const [takeMode, setTakeMode] = useState(false);
   const [showScores, setShowScores] = useState(false);
   const [showLeave, setShowLeave] = useState(false);
+  const [flipped, setFlipped] = useState<Set<string>>(new Set());
 
   // Eli sunucu durumuyla eşitle (düzen korunur).
   useEffect(() => {
@@ -49,6 +50,7 @@ export function GameTable({ view }: { view: ClientGameView }) {
       setTakeMode(false);
       setPairsMode(false);
       setNewTileId(null);
+      setFlipped(new Set());
     } else {
       const added = view.hand.filter((t) => !prevHandIds.current.has(t.id));
       if (added.length === 1) setNewTileId(added[0].id);
@@ -115,6 +117,16 @@ export function GameTable({ view }: { view: ClientGameView }) {
   const canOpen = phaseOk && !openBlocker;
 
   // ── Eylemler ──
+  // Çift dokunuşla ters çevrilen taşlar (yalnız istemcide; ters taş atılamaz — okeyi yanlışlıkla atmamak için).
+  const lastTap = useRef<{ id: string; t: number } | null>(null);
+  const toggleFlip = (id: string) =>
+    setFlipped((f) => {
+      const n = new Set(f);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+
   const toggleSelect = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
   const orderedSelection = () => {
@@ -169,6 +181,7 @@ export function GameTable({ view }: { view: ClientGameView }) {
   const discard = () => {
     if (!myTurn || view.phase !== 'ACTIONS' || selected.length !== 1) return;
     if (jokerBlocksDiscard) return toast('Önce masadan aldığınız okeyi masaya koyun', 'error');
+    if (flipped.has(selected[0])) return toast('Ters çevrilmiş taş atılamaz. Çift dokunarak çevirin.', 'error');
     sendCommand({ type: 'discard', tileId: selected[0] });
     setSelected([]);
   };
@@ -224,7 +237,19 @@ export function GameTable({ view }: { view: ClientGameView }) {
 
   const onSlot = (i: number) => {
     const id = rack[i];
-    if (id && !stagedIds.has(id)) return toggleSelect(id);
+    if (id && !stagedIds.has(id)) {
+      const now = Date.now();
+      const prev = lastTap.current;
+      if (prev && prev.id === id && now - prev.t < 350) {
+        // İkinci dokunuş: ilk dokunuşun seçimini geri al ve taşı çevir.
+        lastTap.current = null;
+        toggleSelect(id);
+        toggleFlip(id);
+        return;
+      }
+      lastTap.current = { id, t: now };
+      return toggleSelect(id);
+    }
     if (!id) {
       const movable = orderedSelection().filter((x) => rack.includes(x));
       if (movable.length) {
@@ -308,11 +333,11 @@ export function GameTable({ view }: { view: ClientGameView }) {
           disabled={!myTurn || view.phase !== 'DRAW'}
           aria-label={`Desteden çek, ${view.stockCount} taş kaldı`}
         >
-          <TileBack count={view.stockCount} />
+          <TileBack count={view.stockCount} size="center" />
           <span className="small">Deste</span>
         </button>
         <div className="indicator" aria-label="Gösterge">
-          <TileView tile={view.indicator} size="meld" />
+          <TileView tile={view.indicator} size="center" />
           <span className="small">Gösterge</span>
         </div>
         <div className="last-action small" aria-live="polite">
@@ -436,7 +461,7 @@ export function GameTable({ view }: { view: ClientGameView }) {
           {myTurn && view.phase === 'ACTIONS' && (
             <button
               className="btn small danger"
-              disabled={selected.length !== 1 || selected[0] === pending?.id || jokerBlocksDiscard}
+              disabled={selected.length !== 1 || selected[0] === pending?.id || jokerBlocksDiscard || flipped.has(selected[0])}
               onClick={discard}
               title={jokerBlocksDiscard ? 'Önce masadan aldığınız okeyi koyun' : undefined}
             >
@@ -544,6 +569,7 @@ export function GameTable({ view }: { view: ClientGameView }) {
                   okey={okey}
                   selected={selected.includes(t.id)}
                   dim={stagedIds.has(t.id)}
+                  faceDown={flipped.has(t.id)}
                   badge={mustUseJokers.includes(t.id) ? 'koy' : t.id === newTileId ? 'yeni' : undefined}
                   onClick={() => onSlot(i)}
                   draggable

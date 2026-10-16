@@ -8,7 +8,9 @@ interface Props {
   tile: Tile;
   okey?: Face;
   as?: Face; // per içindeki temsil (okey için)
-  size?: 'rack' | 'meld' | 'mini';
+  size?: 'rack' | 'meld' | 'mini' | 'center';
+  /** Istakada ters çevrilmiş (yalnız sahibine özel görünüm; atılamaz). */
+  faceDown?: boolean;
   selected?: boolean;
   highlight?: boolean;
   dim?: boolean;
@@ -18,7 +20,7 @@ interface Props {
   onDragStart?: (e: React.DragEvent) => void;
 }
 
-export function TileView({ tile, okey, as, size = 'rack', selected, highlight, dim, badge, onClick, draggable, onDragStart }: Props) {
+export function TileView({ tile, okey, as, size = 'rack', faceDown, selected, highlight, dim, badge, onClick, draggable, onDragStart }: Props) {
   const fake = tile.kind === 'F';
   const real = !!okey && isRealOkey(tile, okey);
   const shownAs = real && as ? as : null; // okey per içinde neyi temsil ediyor
@@ -33,6 +35,7 @@ export function TileView({ tile, okey, as, size = 'rack', selected, highlight, d
     highlight ? 'highlight' : '',
     dim ? 'dim' : '',
     onClick ? 'clickable' : '',
+    faceDown ? 'back facedown' : '',
   ].join(' ');
   const content = fake ? (
     <>
@@ -45,7 +48,9 @@ export function TileView({ tile, okey, as, size = 'rack', selected, highlight, d
       <span className="sym">{COLOR_SYMBOL[tile.color!]}</span>
     </>
   );
-  const label = tileLabel(tile, okey) + (shownAs ? `, ${shownAs.number} yerine` : '');
+  const label = faceDown
+    ? `${tileLabel(tile, okey)}, ters çevrili (atılamaz; çift dokunarak çevirin)`
+    : tileLabel(tile, okey) + (shownAs ? `, ${shownAs.number} yerine` : '');
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag
@@ -58,14 +63,22 @@ export function TileView({ tile, okey, as, size = 'rack', selected, highlight, d
       draggable={draggable}
       onDragStart={onDragStart}
     >
-      {content}
-      {real && <span className="okey-mark" aria-hidden>{shownAs ? shownAs.number : 'OK'}</span>}
+      {faceDown ? (
+        <span className="lock" aria-hidden>
+          🔒
+        </span>
+      ) : (
+        <>
+          {content}
+          {real && <span className="okey-mark" aria-hidden>{shownAs ? shownAs.number : 'OK'}</span>}
+        </>
+      )}
       {badge && <span className="badge">{badge}</span>}
     </Tag>
   );
 }
 
-export function TileBack({ count, size = 'meld' }: { count?: number; size?: 'meld' | 'rack' }) {
+export function TileBack({ count, size = 'meld' }: { count?: number; size?: 'meld' | 'rack' | 'center' }) {
   return (
     <div className={`tile back sz-${size}`} aria-hidden>
       {count !== undefined && <span className="num">{count}</span>}
