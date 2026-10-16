@@ -1,8 +1,10 @@
-# Online 101 Okey
+# Online 101 Okey & Batak
 
-Dört kişilik, gerçek zamanlı, sunucu otoriteli 101 Okey. Web uygulaması olarak çalışır; telefondan tarayıcıyla açılır (dikey ve yatay ekran desteklenir, ana ekrana eklenebilir).
+Dört kişilik, gerçek zamanlı, sunucu otoriteli iki oyun: **101 Okey** ve **ihaleli Batak** (tekli ve eşli). Web uygulaması olarak çalışır; telefondan tarayıcıyla açılır (dikey ve yatay ekran desteklenir, ana ekrana eklenebilir).
 
-Ürün ve kural gereksinimleri: [docs/spesifikasyon.md](docs/spesifikasyon.md)
+Ürün ve kural gereksinimleri: [docs/okey101-spesifikasyon.md](docs/okey101-spesifikasyon.md), [docs/batak-spesifikasyon.md](docs/batak-spesifikasyon.md)
+
+Ana ekran 101 Okey'dir; **"Batak oyna"** ile Batak ana ekranına, oradan **"101 Okey'e dön"** ile geri geçilir (seçim cihazda hatırlanır). Giriş, lobi, davet kodu, bekleme odası, botlar, zaman aşımı ve yeniden bağlanma iki oyunda ortaktır.
 
 ## Hızlı başlangıç
 
@@ -45,13 +47,22 @@ src/
     game.ts     Dağıtım, durum makinesi, applyCommand, skor, zaman aşımı, oyuncuya özel görünüm
     bot.ts      Boş koltuk ve devralma için bot
     errors.ts   Kodlu hatalar + Türkçe mesajlar
+  batak/    Saf, deterministik Batak motoru
+    types.ts    Kart, ihale, el (trick), komut, durum tipleri
+    rules.ts    Kural profili (tekli/eşli varsayılanları, varyantlar) ve masa seçenekleri
+    cards.ts    52 kartlık deste, karıştırma, etiketler, el sıralama
+    game.ts     Dağıtım, ihale, koz, oynanabilir kartlar, el kazananı, puan, zaman aşımı, görünüm
+    bot.ts      Normal (el tahmini, patron kart takibi, eş farkındalığı) ve Kolay bot
   server/   Node + ws; bellek içi modüler monolit
+    adapters.ts Oyun modülleri: maç yöneticisi oyundan bağımsız, her oyun bir adaptörle bağlanır
     index.ts    HTTP (statik dosya + /health) ve WebSocket (/ws), origin kontrolü, hız limiti, heartbeat
     hub.ts      Misafir kimliği (token SHA‑256 ile saklanır), lobi, davet kodu, hızlı eşleşme
     room.ts     Maç başına tekil yazma otoritesi: sıra, idempotency, sürüm kontrolü, zamanlayıcı, bot
   shared/protocol.ts  İstemci ↔ sunucu mesaj sözleşmesi
   web/      React + Vite istemci (mobil öncelikli)
-tests/engine.test.ts  Kabul testleri (§15 birim/özellik)
+tests/engine.test.ts  101 kabul testleri (§15 birim/özellik)
+tests/batak.test.ts   Batak kabul testleri (§14.1)
+tests/rack.test.ts    Istaka dizme testleri
 ```
 
 **Otorite:** Karıştırma (`crypto.randomInt`), dağıtım, sıra, doğrulama ve skor yalnız sunucuda. İstemci yalnız komut önerir; aynı motor fonksiyonlarını sadece önizleme (açılış toplamı, işlenebilir perlerin vurgulanması) için kullanır.
@@ -60,7 +71,7 @@ tests/engine.test.ts  Kabul testleri (§15 birim/özellik)
 
 **Komutlar:** `draw_stock`, `take_discard` (açmamış oyuncu için açılışla birlikte atomik), `open_melds`, `open_pairs`, `layoff`, `swap_joker`, `discard`. Her komut `commandId` (idempotency) ve `expectedVersion` taşır; eski sürümde `STALE_STATE` + güncel snapshot döner. Geçersiz komut durumu değiştirmez.
 
-## Uygulanan kural profili (varsayılan)
+## 101 Okey kural profili (varsayılan)
 
 | Konu | Değer |
 |---|---|
@@ -80,7 +91,23 @@ tests/engine.test.ts  Kabul testleri (§15 birim/özellik)
 | Maç | 10 el (1–11); düşük toplam ceza kazanır, eşitlikte galibiyet sayısı |
 | Eşli oyun (ayar) | Karşılıklı oturanlar takım (1–3 ve 2–4. koltuk); takım puanı iki oyuncunun toplamı, bireysel puanlar da gösterilir. Varsayılan: bitirenin eşi ceza almaz (ayarla kapatılabilir). "Sadece kendi perine işleme" eşli oyunda eşin perlerini de kapsar. Sıralama takım toplamına göre |
 
-## Bot
+## Batak kural profili (varsayılan)
+
+| Konu | Değer |
+|---|---|
+| Deste | 52 kart, joker yok; 13'er kart; ihale dağıtıcının solundan başlar, oyun saat yönünde |
+| İhale | Tekli en az 5, eşli en az 8 (masa ayarı: 4–5 / 7–8); artış 1; pas geçen tekrar teklif veremez; 13 ihaleyi hemen kapatır |
+| Herkes pas | Son oyuncu en az minimum teklifle ihaleyi almak zorunda (ayar: yeniden dağıt) |
+| Koz | İhaleci seçer, ilk eli o açar; koz açılmadan kozla çıkılamaz (elde yalnız koz kaldıysa serbest) |
+| Oyun | Renge uymak zorunlu; renk yoksa serbest (ayar: koz zorunlu); yükseltme zorunluluğu yok (ayar: eli geçebiliyorsan geç — geçen herhangi bir kart) |
+| Tekli puan | İhaleci tutarsa +ihale×10, batarsa −ihale×10; diğerleri aldıkları el×10; fazla ele bonus yok |
+| Eşli puan | İhaleci takım (iki eşin toplam eli) tutarsa +ihale×10, batarsa −ihale×10; rakip takıma puan yok |
+| Maç | 10 dağıtım (1–11); yüksek puan kazanır, eşitlik beraberlik |
+| Süre | İhale/koz 20 sn, kart 30 sn (15–60); zaman aşımında pas (zorunluysa minimum teklif), en uzun renk koz, en küçük oynanabilir kart; 3 ardışık zaman aşımında bot devralır |
+
+Batak botu Normal seviyede elini ve koz adaylarını el tahminiyle değerlendirir, oynanmış kartları takip ederek "patron" kartları bilir, eşli oyunda eşinin teklifini ve eşi eli alıyorken kart harcamamayı hesaba katar. Ölçümde (5 dağıtımlık 300'er maç) Normal, Kolay'ı tekli maçların %82'sinde, eşli maçların %91'inde yendi.
+
+## 101 Okey botu
 
 Botlar yalnız herkesin gördüğü bilgiyi kullanır (eşinin veya rakiplerin elini görmez).
 

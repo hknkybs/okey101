@@ -19,10 +19,8 @@ import {
   type Tile,
 } from './types.ts';
 
-export interface Rng {
-  randInt(n: number): number;
-  id(): string;
-}
+import type { Rng } from '../shared/rng.ts';
+export type { Rng };
 
 export const nextSeat = (s: number) => (s + 1) % SEATS;
 export const prevSeat = (s: number) => (s + SEATS - 1) % SEATS;

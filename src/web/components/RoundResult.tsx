@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ranking, teamRanking } from '../../engine/game.ts';
 import { teamOf, teamTotals } from '../../engine/rules.ts';
 import type { FinishType } from '../../engine/types.ts';
-import type { ClientGameView } from '../../shared/protocol.ts';
+import type { OkeyClientView as ClientGameView } from '../../shared/protocol.ts';
 import { send, serverNow } from '../net.ts';
 import { TileView } from './TileView.tsx';
 

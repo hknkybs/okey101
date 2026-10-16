@@ -1,8 +1,10 @@
 // Kimlik (misafir), lobi, eşleştirme ve mesaj yönlendirme. Bellek içi modüler monolit.
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { WebSocket } from 'ws';
+import { buildBatakRules, describeBatakRules, normalizeBatakOptions, type BatakTableOptions } from '../batak/rules.ts';
 import { BOT_LEVEL_LABEL, buildRules, describeRules, type BotLevel, type TableOptions } from '../engine/rules.ts';
-import type { ClientMsg, LobbySummary, LobbyView, ServerMsg } from '../shared/protocol.ts';
+import { GAME_NAME, type ClientMsg, type GameId, type LobbyOptions, type LobbySummary, type LobbyView, type ServerMsg } from '../shared/protocol.ts';
+import { batakAdapter, okeyAdapter, type GameAdapter } from './adapters.ts';
 import { log } from './log.ts';
 import { MatchRoom, type RoomSeat } from './room.ts';
 
@@ -25,11 +27,12 @@ interface LobbySeat {
 
 interface Lobby {
   id: string;
+  game: GameId;
   code: string;
   name: string;
   ownerId: string;
   isPrivate: boolean;
-  options: Required<TableOptions>;
+  options: LobbyOptions;
   seats: LobbySeat[];
   room: MatchRoom | null;
   createdAt: number;
@@ -52,6 +55,42 @@ function sanitizeName(raw: unknown): string {
     .trim()
     .slice(0, 20);
   return s || `Misafir${Math.floor(Math.random() * 9000 + 1000)}`;
+}
+
+// ─────────────── oyuna özel masa ayarları ───────────────
+
+const asGame = (g: unknown): GameId => (g === 'batak' ? 'batak' : 'okey');
+
+function normalizeFor(game: GameId, o: unknown = {}): LobbyOptions {
+  return game === 'batak'
+    ? { ...normalizeBatakOptions(o as BatakTableOptions), game: 'batak' }
+    : { ...normalizeOptions(o as TableOptions), game: 'okey' };
+}
+
+function rulesSummaryFor(game: GameId, o: LobbyOptions): string[] {
+  return game === 'batak' ? describeBatakRules(buildBatakRules(o as BatakTableOptions)) : describeRules(buildRules(o as TableOptions));
+}
+
+function adapterFor(game: GameId, o: LobbyOptions): GameAdapter<unknown, { type: string }> {
+  const a = game === 'batak' ? batakAdapter(buildBatakRules(o as BatakTableOptions)) : okeyAdapter(buildRules(o as TableOptions));
+  return a as unknown as GameAdapter<unknown, { type: string }>;
+}
+
+/** Masa listesi satırı için kısa özet. */
+function infoFor(game: GameId, o: LobbyOptions, botLevel: BotLevel | 'mixed'): string {
+  const parts: string[] = [];
+  if (game === 'batak') {
+    const b = o as Required<BatakTableOptions>;
+    parts.push(`${b.roundLimit} dağıtım`, `${b.turnSeconds} sn`, b.teamMode ? 'eşli' : 'tekli', `min ihale ${b.minBid}`);
+  } else {
+    const k = o as Required<TableOptions>;
+    parts.push(`${k.roundLimit} el`, `${k.turnSeconds} sn`);
+    if (k.allowPairs) parts.push('çift açık');
+    if (k.teamMode) parts.push('eşli');
+  }
+  if (botLevel === 'easy') parts.push('kolay bot');
+  else if (botLevel === 'mixed') parts.push('karışık bot');
+  return parts.join(' · ');
 }
 
 function normalizeOptions(o: TableOptions = {}): Required<TableOptions> {
@@ -108,7 +147,7 @@ export class Hub {
       case 'lobby.list':
         return this.send(ws, { t: 'lobbies', list: this.lobbyList() });
       case 'lobby.create': {
-        const lobby = this.createLobby(u, msg.name, !!msg.isPrivate, msg.options);
+        const lobby = this.createLobby(u, asGame(msg.game), msg.name, !!msg.isPrivate, msg.options);
         this.joinLobby(u, lobby);
         return;
       }
@@ -191,7 +230,9 @@ export class Hub {
       }
       case 'quick.bots': {
         this.leaveLobby(u, true);
-        const lobby = this.createLobby(u, msg.options?.teamMode ? `${u.name} & Bot vs Botlar` : `${u.name} vs Botlar`, true, msg.options);
+        const game = asGame(msg.game);
+        const team = !!(msg.options as { teamMode?: boolean } | undefined)?.teamMode;
+        const lobby = this.createLobby(u, game, `${GAME_NAME[game]}: ${u.name}${team ? ' & Bot' : ''} vs Botlar`, true, msg.options);
         lobby.seats[0] = { userId: u.id, isBot: false, ready: true };
         for (let i = 1; i < 4; i++) {
           lobby.seats[i] = { userId: null, isBot: true, botName: this.botName(lobby), botLevel: lobby.options.botLevel, ready: true };
@@ -201,12 +242,13 @@ export class Hub {
         return;
       }
       case 'quick.match': {
+        const game = asGame(msg.game);
         const open = [...this.lobbies.values()]
-          .filter((l) => !l.isPrivate && !l.room && l.seats.some((s) => !s.userId && !s.isBot))
+          .filter((l) => l.game === game && !l.isPrivate && !l.room && l.seats.some((s) => !s.userId && !s.isBot))
           .sort((a, b) => a.createdAt - b.createdAt)[0];
         if (open && open.id !== u.lobbyId) return this.joinLobby(u, open);
         if (!open) {
-          const lobby = this.createLobby(u, `${u.name} masası`, false, {});
+          const lobby = this.createLobby(u, game, `${u.name} masası`, false, {});
           this.joinLobby(u, lobby);
         }
         return;
@@ -227,7 +269,7 @@ export class Hub {
       case 'game.leave': {
         const lobby = this.lobbyOf(u);
         const room = lobby?.room;
-        if (room && room.state.status !== 'ENDED') {
+        if (room && room.status() !== 'ENDED') {
           const seat = room.seatOf(u.id);
           if (seat >= 0) room.leave(seat);
         }
@@ -241,7 +283,7 @@ export class Hub {
       }
       case 'match.again': {
         const lobby = this.lobbyOf(u);
-        if (!lobby?.room || lobby.room.state.status !== 'ENDED') return;
+        if (!lobby?.room || lobby.room.status() !== 'ENDED') return;
         this.resetLobby(lobby);
         return;
       }
@@ -301,21 +343,22 @@ export class Hub {
 
   // ─────────────── lobi ───────────────
 
-  private createLobby(owner: User, name: string | undefined, isPrivate: boolean, options?: TableOptions): Lobby {
+  private createLobby(owner: User, game: GameId, name: string | undefined, isPrivate: boolean, options?: unknown): Lobby {
     const lobby: Lobby = {
       id: randomUUID(),
+      game,
       code: inviteCode(),
       name: sanitizeName(name || `${owner.name} masası`).slice(0, 30),
       ownerId: owner.id,
       isPrivate,
-      options: normalizeOptions(options),
+      options: normalizeFor(game, options),
       seats: Array.from({ length: 4 }, () => ({ userId: null, isBot: false, ready: false })),
       room: null,
       createdAt: Date.now(),
       emptySince: null,
     };
     this.lobbies.set(lobby.id, lobby);
-    log('lobby.created', { lobbyId: lobby.id, isPrivate });
+    log('lobby.created', { lobbyId: lobby.id, game, isPrivate });
     return lobby;
   }
 
@@ -342,7 +385,7 @@ export class Hub {
     if (!lobby) return;
     if (lobby.room) {
       const seat = lobby.room.seatOf(u.id);
-      if (seat >= 0 && lobby.room.state.status !== 'ENDED') lobby.room.leave(seat);
+      if (seat >= 0 && lobby.room.status() !== 'ENDED') lobby.room.leave(seat);
     } else {
       const s = lobby.seats.find((x) => x.userId === u.id);
       if (s) Object.assign(s, { userId: null, ready: false });
@@ -396,10 +439,9 @@ export class Hub {
         timeouts: 0,
       };
     });
-    const rules = buildRules(lobby.options);
     lobby.room = new MatchRoom(
       seats,
-      rules,
+      adapterFor(lobby.game, lobby.options),
       (room) => this.pushGame(lobby, room),
       () => this.pushLobby(lobby),
     );
@@ -433,12 +475,13 @@ export class Hub {
   private lobbyView(l: Lobby, viewerId: string): LobbyView {
     return {
       id: l.id,
+      game: l.game,
       code: l.code,
       name: l.name,
       isPrivate: l.isPrivate,
       status: l.room ? 'PLAYING' : 'WAITING',
       options: l.options,
-      rulesSummary: [...describeRules(buildRules(l.options)), ...this.botSummary(l)],
+      rulesSummary: [...rulesSummaryFor(l.game, l.options), ...this.botSummary(l)],
       youAreOwner: l.ownerId === viewerId,
       seats: l.seats.map((s, i) => {
         const u = s.userId ? this.users.get(s.userId) : undefined;
@@ -463,14 +506,11 @@ export class Hub {
       .filter((l) => !l.isPrivate)
       .map((l) => ({
         id: l.id,
+        game: l.game,
         name: l.name,
         players: l.seats.filter((s) => s.userId || s.isBot).length,
         status: l.room ? ('PLAYING' as const) : ('WAITING' as const),
-        roundLimit: l.options.roundLimit,
-        turnSeconds: l.options.turnSeconds,
-        allowPairs: l.options.allowPairs,
-        teamMode: l.options.teamMode,
-        botLevel: this.botLevelOf(l),
+        info: infoFor(l.game, l.options, this.botLevelOf(l)),
       }))
       .slice(0, 50);
   }

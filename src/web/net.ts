@@ -1,7 +1,8 @@
 // WebSocket bağlantısı + basit global store (useSyncExternalStore).
 import { useSyncExternalStore } from 'react';
+import type { BatakCommand } from '../batak/types.ts';
 import type { Command } from '../engine/types.ts';
-import type { ClientGameView, ClientMsg, LobbySummary, LobbyView, ServerMsg } from '../shared/protocol.ts';
+import type { ClientGameView, ClientMsg, GameId, LobbySummary, LobbyView, ServerMsg } from '../shared/protocol.ts';
 
 export interface Toast {
   id: number;
@@ -16,10 +17,13 @@ export interface AppState {
   lobby: LobbyView | null;
   game: ClientGameView | null;
   clockOffset: number; // serverTime - localTime
+  /** Hangi oyunun ana ekranındayız (cihazda hatırlanır). */
+  section: GameId;
   toasts: Toast[];
 }
 
 const TOKEN_KEY = 'okey101.token';
+const SECTION_KEY = 'okey101.section';
 const NAME_KEY = 'okey101.name';
 
 const safeGet = (k: string) => {
@@ -44,6 +48,7 @@ let state: AppState = {
   lobby: null,
   game: null,
   clockOffset: 0,
+  section: safeGet(SECTION_KEY) === 'batak' ? 'batak' : 'okey',
   toasts: [],
 };
 const listeners = new Set<() => void>();
@@ -67,6 +72,12 @@ let ws: WebSocket | null = null;
 let retry = 0;
 let toastSeq = 0;
 let pendingJoinCode: string | null = new URLSearchParams(location.search).get('code');
+
+export function setSection(section: GameId) {
+  safeSet(SECTION_KEY, section);
+  set({ section });
+  window.scrollTo(0, 0);
+}
 
 export function storedName() {
   return safeGet(NAME_KEY);
@@ -124,6 +135,8 @@ function onMessage(msg: ServerMsg) {
       break;
     case 'lobby':
       set({ lobby: msg.lobby });
+      // Bir masaya girildiyse (ör. davet koduyla) kalkınca o oyunun ana ekranına dönülsün.
+      if (msg.lobby && msg.lobby.game !== state.section) setSection(msg.lobby.game);
       break;
     case 'game':
       set({
@@ -161,7 +174,7 @@ function uuid() {
   return [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
 }
 
-export function sendCommand(command: Command) {
+export function sendCommand(command: Command | BatakCommand) {
   const g = state.game;
   if (!g) return;
   send({ t: 'game.command', commandId: uuid(), expectedVersion: g.stateVersion, command });

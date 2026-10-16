@@ -1,11 +1,9 @@
 // Maç başına tekil yazma otoritesi. Tüm komutlar burada sıralı uygulanır.
 import { randomInt, randomUUID } from 'node:crypto';
-import { botNextCommand } from '../engine/bot.ts';
-import { GameError } from '../engine/errors.ts';
-import { applyCommand, createMatch, startNextRound, timeoutCommands, viewFor, type Rng } from '../engine/game.ts';
-import type { BotLevel, Ruleset } from '../engine/rules.ts';
-import type { Command, MatchState } from '../engine/types.ts';
+import type { BotLevel } from '../engine/rules.ts';
 import type { ClientGameView, PlayerInfo } from '../shared/protocol.ts';
+import type { Rng } from '../shared/rng.ts';
+import type { GameAdapter } from './adapters.ts';
 import { log } from './log.ts';
 
 /** Kriptografik RNG; tohum istemciye hiçbir zaman gönderilmez. */
@@ -28,9 +26,14 @@ type CommandResult = { ok: true } | { ok: false; code: string; message: string }
 const BOT_DELAY_MS = [700, 1300];
 const NEXT_ROUND_MS = 9000;
 
-export class MatchRoom {
+/** Oyun motorlarının kural hataları: kararlı `code` + Türkçe mesaj. */
+const isGameError = (e: unknown): e is { code: string; message: string } =>
+  e instanceof Error && typeof (e as { code?: unknown }).code === 'string';
+
+/** Tek maçın sıralı yazma otoritesi; oyun kuralları adaptör üzerinden çağrılır. */
+export class MatchRoom<S = unknown, C extends { type: string } = { type: string }> {
   readonly id = randomUUID();
-  state: MatchState;
+  state: S;
   deadlineAt: number | null = null;
   nextRoundAt: number | null = null;
   private timer: NodeJS.Timeout | null = null;
@@ -40,12 +43,16 @@ export class MatchRoom {
 
   constructor(
     public seats: RoomSeat[],
-    rules: Ruleset,
-    private onChange: (room: MatchRoom) => void,
-    private onEnded: (room: MatchRoom) => void,
+    private game: GameAdapter<S, C>,
+    private onChange: (room: MatchRoom<S, C>) => void,
+    private onEnded: (room: MatchRoom<S, C>) => void,
   ) {
-    this.state = createMatch(rules, cryptoRng, randomInt(4));
-    log('match.started', { matchId: this.id, rulesetVersion: rules.rulesetVersion });
+    this.state = game.create(cryptoRng, randomInt(4));
+    log('match.started', { matchId: this.id, game: game.game });
+  }
+
+  status() {
+    return this.game.status(this.state);
   }
 
   start() {
@@ -68,16 +75,16 @@ export class MatchRoom {
   }
 
   /** Oyuncu komutu: idempotency + sürüm kontrolü + motor doğrulaması. */
-  command(userId: string, commandId: string, expectedVersion: number, cmd: Command): CommandResult {
+  command(userId: string, commandId: string, expectedVersion: number, cmd: C): CommandResult {
     const seat = this.seatOf(userId);
     if (seat < 0) return { ok: false, code: 'NOT_IN_MATCH', message: 'Bu maçta değilsiniz.' };
     const key = `${seat}:${commandId}`;
     const prev = this.recent.get(key);
     if (prev) return prev;
     let res: CommandResult;
-    if (expectedVersion !== this.state.stateVersion) {
+    if (expectedVersion !== this.game.version(this.state)) {
       res = { ok: false, code: 'STALE_STATE', message: 'Oyun durumu güncellendi, lütfen tekrar deneyin.' };
-    } else if (this.deadlineAt && Date.now() > this.deadlineAt + 500 && this.state.round.activeSeat === seat) {
+    } else if (this.deadlineAt && Date.now() > this.deadlineAt + 500 && this.game.activeSeat(this.state) === seat) {
       res = { ok: false, code: 'DEADLINE_EXPIRED', message: 'Hamle süresi doldu.' };
     } else {
       res = this.apply(seat, cmd, 'PLAYER');
@@ -88,22 +95,24 @@ export class MatchRoom {
     return res;
   }
 
-  private apply(seat: number, cmd: Command, source: 'PLAYER' | 'BOT' | 'AUTO_TIMEOUT'): CommandResult {
+  private apply(seat: number, cmd: C, source: 'PLAYER' | 'BOT' | 'AUTO_TIMEOUT'): CommandResult {
     try {
-      this.state = applyCommand(this.state, seat, cmd);
+      if (!cmd || typeof cmd !== 'object') return { ok: false, code: 'BAD_COMMAND', message: 'Geçersiz komut.' };
+      this.state = this.game.apply(this.state, seat, cmd, cryptoRng);
       log('game.command', {
         matchId: this.id,
-        round: this.state.round.roundNo,
-        version: this.state.stateVersion,
+        game: this.game.game,
+        round: this.game.roundNo(this.state),
+        version: this.game.version(this.state),
         seat,
-        type: cmd.type,
+        type: this.game.commandType(cmd),
         source,
       });
       this.schedule();
       this.onChange(this);
       return { ok: true };
     } catch (e) {
-      if (e instanceof GameError) return { ok: false, code: e.code, message: e.message };
+      if (isGameError(e)) return { ok: false, code: e.code, message: e.message };
       log('game.error', { matchId: this.id, error: String(e) });
       return { ok: false, code: 'INTERNAL', message: 'Beklenmeyen hata.' };
     }
@@ -114,19 +123,21 @@ export class MatchRoom {
     if (this.closed) return;
     if (this.timer) clearTimeout(this.timer);
     this.timer = null;
+    const g = this.game;
     const m = this.state;
+    const status = g.status(m);
 
-    if (m.status === 'ENDED') {
+    if (status === 'ENDED') {
       this.deadlineAt = null;
       this.nextRoundAt = null;
       this.onEnded(this);
       return;
     }
-    if (m.status === 'ROUND_OVER') {
+    if (status === 'ROUND_OVER') {
       this.deadlineAt = null;
       this.nextRoundAt = Date.now() + NEXT_ROUND_MS;
       this.timer = setTimeout(() => {
-        this.state = startNextRound(this.state, cryptoRng);
+        this.state = g.nextRound(this.state, cryptoRng);
         this.nextRoundAt = null;
         this.schedule();
         this.onChange(this);
@@ -134,14 +145,14 @@ export class MatchRoom {
       return;
     }
 
-    const seat = m.round.activeSeat;
-    const key = `${m.round.roundNo}:${m.round.turnNo}`;
+    const seat = g.activeSeat(m);
+    const key = g.turnKey(m);
     if (key !== this.turnKey) {
       this.turnKey = key;
-      this.deadlineAt = Date.now() + m.rules.round.maxTurnSeconds * 1000;
+      this.deadlineAt = Date.now() + g.turnMs(m);
     }
     if (this.isAutomated(seat)) {
-      const delay = BOT_DELAY_MS[0] + randomInt(BOT_DELAY_MS[1] - BOT_DELAY_MS[0]);
+      const delay = Math.max(BOT_DELAY_MS[0] + randomInt(BOT_DELAY_MS[1] - BOT_DELAY_MS[0]), g.botDelayMs?.(m) ?? 0);
       this.timer = setTimeout(() => this.botStep(), delay);
     } else {
       this.timer = setTimeout(() => this.onTimeout(), Math.max(0, this.deadlineAt! - Date.now()));
@@ -149,31 +160,38 @@ export class MatchRoom {
   }
 
   private botStep() {
-    const seat = this.state.round.activeSeat;
-    let cmd: Command;
+    const g = this.game;
+    const seat = g.activeSeat(this.state);
+    let cmd: C;
     try {
-      // Kolay bot eski basit mantıkla oynar. Bir insanın yerine geçici oynayan bot her zaman normal seviyededir.
+      // Kolay bot basit mantıkla oynar. Bir insanın yerine geçici oynayan bot her zaman normal seviyededir.
       const s = this.seats[seat];
-      cmd = botNextCommand(this.state, { style: s.isBot && s.botLevel === 'easy' ? 'basic' : 'smart' });
+      cmd = g.botCommand(this.state, s.isBot && s.botLevel === 'easy' ? 'basic' : 'smart');
     } catch {
-      cmd = timeoutCommands(this.state)[0];
+      cmd = g.timeoutCommands(this.state)[0];
     }
     const res = cmd ? this.apply(seat, cmd, 'BOT') : { ok: false as const, code: 'X', message: '' };
     if (!res.ok) {
       // Bot hatalı komut ürettiyse deterministik zaman aşımı hamlesine düş.
-      for (const c of timeoutCommands(this.state)) if (!this.apply(seat, c, 'AUTO_TIMEOUT').ok) break;
+      for (const c of g.timeoutCommands(this.state)) if (!this.apply(seat, c, 'AUTO_TIMEOUT').ok) break;
     }
   }
 
   private onTimeout() {
-    const seat = this.state.round.activeSeat;
+    const g = this.game;
+    const seat = g.activeSeat(this.state);
     const s = this.seats[seat];
     s.timeouts++;
-    if (s.timeouts >= this.state.rules.reconnect.timeoutsBeforeBot) {
+    if (s.timeouts >= g.timeoutsBeforeBot(this.state)) {
       s.botControlled = true;
       log('seat.bot_takeover', { matchId: this.id, seat, reason: 'timeouts' });
     }
-    const cmds = timeoutCommands(this.state);
+    let cmds: C[] = [];
+    try {
+      cmds = g.timeoutCommands(this.state);
+    } catch (e) {
+      log('game.error', { matchId: this.id, error: String(e) });
+    }
     for (const c of cmds) {
       if (!this.apply(seat, c, 'AUTO_TIMEOUT').ok) break;
     }
@@ -194,7 +212,7 @@ export class MatchRoom {
 
   /** Kopma penceresi aşılırsa koltuğu bot devralır. */
   checkGrace(now: number) {
-    const grace = this.state.rules.reconnect.graceSeconds * 1000;
+    const grace = this.game.graceMs(this.state);
     let changed = false;
     for (const s of this.seats) {
       if (!s.isBot && !s.botControlled && !s.connected && s.disconnectedAt && now - s.disconnectedAt > grace) {
@@ -241,12 +259,12 @@ export class MatchRoom {
       botControlled: s.botControlled,
     }));
     return {
-      ...viewFor(this.state, seat),
+      ...this.game.view(this.state, seat),
       matchId: this.id,
       players,
-      deadlineAt: this.state.status === 'ACTIVE' ? this.deadlineAt : null,
+      deadlineAt: this.status() === 'ACTIVE' ? this.deadlineAt : null,
       nextRoundAt: this.nextRoundAt,
       serverTime: Date.now(),
-    };
+    } as ClientGameView;
   }
 }

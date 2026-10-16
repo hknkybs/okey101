@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { BatakTable } from './components/batak/BatakTable.tsx';
 import { GameTable } from './components/GameTable.tsx';
 import { LobbyScreen } from './components/LobbyScreen.tsx';
 import { Login } from './components/Login.tsx';
@@ -26,11 +27,11 @@ export function App() {
   } else if (!app.me) {
     screen = <div className="center-msg">Bağlanılıyor…</div>;
   } else if (app.game) {
-    screen = <GameTable view={app.game} />;
+    screen = app.game.game === 'batak' ? <BatakTable view={app.game} /> : <GameTable view={app.game} />;
   } else if (app.lobby) {
     screen = <RoomScreen lobby={app.lobby} />;
   } else {
-    screen = <LobbyScreen />;
+    screen = <LobbyScreen game={app.section} />;
   }
 
   return (

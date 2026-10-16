@@ -1,4 +1,4 @@
-import type { LobbyView } from '../../shared/protocol.ts';
+import { GAME_NAME, type LobbyView } from '../../shared/protocol.ts';
 import { send, toast } from '../net.ts';
 
 const LEVEL = { easy: 'Kolay', normal: 'Normal' } as const;
@@ -29,7 +29,10 @@ export function RoomScreen({ lobby }: { lobby: LobbyView }) {
         <button className="btn small ghost" onClick={() => send({ t: 'lobby.leave' })}>
           ← Çık
         </button>
-        <h1 className="grow">{lobby.name}</h1>
+        <h1 className="grow">
+          {lobby.name}
+          <span className="small muted block">{GAME_NAME[lobby.game]}</span>
+        </h1>
       </header>
 
       <section className="card invite">

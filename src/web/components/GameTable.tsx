@@ -2,14 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { resolveJokerSwap, resolveLayoff, resolveMeld, resolvePair } from '../../engine/melds.ts';
 import type { Meld, Tile } from '../../engine/types.ts';
 import { canTouchMeld, partnerOf, teamOf, teamTotals } from '../../engine/rules.ts';
-import type { ClientGameView } from '../../shared/protocol.ts';
-import { send, sendCommand, serverNow, toast } from '../net.ts';
+import type { OkeyClientView as ClientGameView } from '../../shared/protocol.ts';
+import { send, sendCommand, toast } from '../net.ts';
 import { arrange, moveTiles, RACK_COLS, swapOrMove, syncRack, type ArrangeMode } from '../rack.ts';
 import { findBestMelds } from '../../engine/bot.ts';
 import { isRealOkey, naturalFace } from '../../engine/tiles.ts';
 import { LeaveDialog } from './LeaveDialog.tsx';
 import { RoundResultModal, ScoreSheet } from './RoundResult.tsx';
 import { TileBack, TileView } from './TileView.tsx';
+import { TurnTimer } from './TurnTimer.tsx';
 
 interface Staged {
   id: number;
@@ -629,19 +630,4 @@ function TeamScore({ view }: { view: ClientGameView }) {
   );
 }
 
-function TurnTimer({ deadline, total, bar }: { deadline: number; total: number; bar?: boolean }) {
-  const [now, setNow] = useState(serverNow());
-  useEffect(() => {
-    const id = setInterval(() => setNow(serverNow()), 250);
-    return () => clearInterval(id);
-  }, []);
-  const left = Math.max(0, Math.ceil((deadline - now) / 1000));
-  const pct = Math.max(0, Math.min(100, ((deadline - now) / (total * 1000)) * 100));
-  if (bar)
-    return (
-      <div className="timer-bar" aria-hidden>
-        <div style={{ width: `${pct}%` }} className={left <= 5 ? 'low' : ''} />
-      </div>
-    );
-  return <span className={`timer ${left <= 5 ? 'low' : ''}`}>{left}s</span>;
-}
+

@@ -1085,3 +1085,366 @@ select:focus-visible {
   outline: 3px solid #4fc3f7;
   outline-offset: 2px;
 }
+
+/* ───────── oyun seçimi ───────── */
+.game-switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: linear-gradient(90deg, rgba(242, 178, 51, 0.22), rgba(242, 178, 51, 0.06));
+  cursor: pointer;
+  min-height: 56px;
+}
+.game-switch.back {
+  border-color: var(--line);
+  background: var(--card);
+}
+.game-switch .gs-icon {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  background: #fff;
+  color: #c62828;
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+.game-switch .gs-icon:first-letter {
+  color: #1f1f1f;
+}
+
+/* ───────── iskambil kartı ───────── */
+.pcard {
+  --cw: 56px;
+  position: relative;
+  width: var(--cw);
+  height: calc(var(--cw) * 1.4);
+  border-radius: calc(var(--cw) * 0.12);
+  background: #fff;
+  border: 1px solid #cfcfcf;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  font-family: inherit;
+  padding: 0;
+  margin: 0;
+  flex: none;
+  color: #1f1f1f;
+  transition: transform 0.12s, opacity 0.12s;
+}
+.pcard.red {
+  color: #c62828;
+}
+.pcard .corner {
+  position: absolute;
+  top: calc(var(--cw) * 0.06);
+  left: calc(var(--cw) * 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  font-weight: 800;
+}
+.pcard .rk {
+  font-size: calc(var(--cw) * 0.34);
+}
+.pcard .st {
+  font-size: calc(var(--cw) * 0.28);
+}
+.pcard .pip {
+  position: absolute;
+  right: calc(var(--cw) * 0.1);
+  bottom: calc(var(--cw) * 0.06);
+  font-size: calc(var(--cw) * 0.6);
+  line-height: 1;
+}
+button.pcard.clickable {
+  cursor: pointer;
+}
+.pcard.selected {
+  transform: translateY(-14px);
+  box-shadow: 0 0 0 3px #4fc3f7, 0 10px 16px rgba(0, 0, 0, 0.45);
+}
+.pcard.dim {
+  opacity: 0.38;
+}
+.pcard:disabled {
+  cursor: default;
+}
+.pcard.highlight {
+  box-shadow: 0 0 0 3px var(--accent), 0 0 14px var(--accent);
+}
+.pcard.pc-trick {
+  --cw: 50px;
+}
+.pcard.pc-mini {
+  --cw: 18px;
+  box-shadow: none;
+}
+.pcard.back {
+  background: repeating-linear-gradient(45deg, #1d4f8c, #1d4f8c 3px, #173f70 3px, #173f70 6px);
+  border-color: #0f2c52;
+  display: grid;
+  place-items: center;
+}
+.pcard.back .cnt {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* ───────── batak masası ───────── */
+.contract-bar {
+  text-align: center;
+  color: var(--muted);
+  padding: 2px 8px 4px;
+}
+.contract-bar strong {
+  color: var(--ink);
+}
+.contract-bar strong.ok,
+.ok {
+  color: var(--good);
+}
+.bad {
+  color: var(--danger);
+}
+.trump-chip {
+  font-weight: 800;
+  background: #fff;
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: #1f1f1f;
+}
+.trump-chip.red {
+  color: #c62828;
+}
+.batak-board {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    '. top .'
+    'left trick right';
+  gap: 6px;
+  padding: 4px 8px;
+  align-items: center;
+}
+.bseat.top {
+  grid-area: top;
+  min-width: 130px;
+}
+.bseat.left {
+  grid-area: left;
+  align-self: center;
+}
+.bseat.right {
+  grid-area: right;
+  align-self: center;
+}
+.bseat .meta {
+  flex-wrap: wrap;
+}
+.trick-area {
+  grid-area: trick;
+  position: relative;
+  width: min(46vw, 230px);
+  height: min(46vw, 230px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.15));
+  border: 1px solid var(--line);
+}
+.trick-slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.trick-slot.bottom {
+  left: 50%;
+  top: 72%;
+}
+.trick-slot.top {
+  left: 50%;
+  top: 28%;
+}
+.trick-slot.left {
+  left: 25%;
+  top: 50%;
+}
+.trick-slot.right {
+  left: 75%;
+  top: 50%;
+}
+.trick-slot.faded {
+  opacity: 0.7;
+}
+.trick-caption {
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  padding: 2px 8px;
+}
+.bid-history {
+  position: absolute;
+  inset: 18% 8%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-content: center;
+  justify-content: center;
+  text-align: center;
+}
+.batak-panel {
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.batak-panel .status {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+}
+.batak-panel .status.mine {
+  color: var(--accent);
+  font-weight: 700;
+}
+.bid-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+.bid-btn {
+  min-width: 44px;
+  font-size: 1rem;
+}
+.pass-btn {
+  min-width: 70px;
+}
+.trump-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.trump-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  color: #1f1f1f;
+  padding: 6px 4px;
+}
+.trump-btn.red {
+  color: #c62828;
+}
+.trump-btn .sym {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.my-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 12px;
+  color: var(--muted);
+}
+.my-info strong {
+  color: var(--ink);
+}
+.batak-hand {
+  --cw: min(calc((100vw - 24px) / 7 - 4px), 64px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 4px;
+  padding: 16px 6px max(10px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
+  border-top: 1px solid var(--line);
+}
+.batak-hand .pcard {
+  --cw: inherit;
+}
+@media (min-width: 700px) {
+  .batak-hand {
+    --cw: min(calc((100vw - 40px) / 13 - 4px), 72px);
+  }
+  .trick-area {
+    width: 280px;
+    height: 280px;
+  }
+  .pcard.pc-trick {
+    --cw: 62px;
+  }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .contract-bar {
+    padding: 0 8px;
+  }
+  /* Rakipler üstte tek sıra, ortadaki el geniş ve alçak bir alanda. */
+  .batak-board {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      'left top right'
+      'trick trick trick';
+    padding-top: 0;
+    gap: 4px 6px;
+  }
+  .bseat.top {
+    min-width: 0;
+  }
+  .bseat .meta + .meta {
+    display: inline-flex;
+  }
+  .trick-area {
+    justify-self: center;
+    width: min(56vw, 340px);
+    height: 100%;
+    min-height: 112px;
+    max-height: 140px;
+    border-radius: 18px;
+  }
+  .trick-slot.left {
+    left: 30%;
+  }
+  .trick-slot.right {
+    left: 70%;
+  }
+  .trick-slot.top {
+    top: 27%;
+  }
+  .trick-slot.bottom {
+    top: 73%;
+  }
+  .trick-caption {
+    bottom: auto;
+    top: 50%;
+    left: auto;
+    right: 4px;
+    transform: translateY(-50%);
+  }
+  .pcard.pc-trick {
+    --cw: 38px;
+  }
+  .batak-hand {
+    --cw: min(calc((100vw - 40px) / 13 - 4px), calc((100dvh - 250px) / 1.4), 64px);
+    padding-top: 12px;
+  }
+  .trump-btn .sym {
+    font-size: 1.3rem;
+  }
+}
+
+.table.batak {
+  position: relative;
+}

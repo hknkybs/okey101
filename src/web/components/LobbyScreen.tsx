@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
+import type { BatakTableOptions } from '../../batak/rules.ts';
 import type { BotLevel, TableOptions } from '../../engine/rules.ts';
-import { send, useApp } from '../net.ts';
+import { GAME_NAME, type GameId } from '../../shared/protocol.ts';
+import { send, setSection, useApp } from '../net.ts';
 
-export function LobbyScreen() {
+/** Her iki oyunun ana ekranı: hızlı oyun, eşleşme, masa oluşturma, davet kodu ve açık masalar. */
+export function LobbyScreen({ game }: { game: GameId }) {
   const app = useApp();
+  const lobbies = app.lobbies.filter((l) => l.game === game);
   const [code, setCode] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [quickTeam, setQuickTeam] = useState(false);
@@ -20,7 +24,7 @@ export function LobbyScreen() {
   return (
     <div className="page">
       <header className="page-head">
-        <h1>101 Okey</h1>
+        <h1>{game === 'batak' ? '♠ ' : ''}{GAME_NAME[game]}</h1>
         {editingName ? (
           <form
             className="row"
@@ -40,9 +44,33 @@ export function LobbyScreen() {
         )}
       </header>
 
+      {game === 'okey' ? (
+        <button className="game-switch" onClick={() => setSection('batak')}>
+          <span className="gs-icon" aria-hidden>
+            ♠♥
+          </span>
+          <span className="grow">
+            <strong>Batak oyna</strong>
+            <span className="small muted block">İhaleli tekli ve eşli Batak</span>
+          </span>
+          <span aria-hidden>→</span>
+        </button>
+      ) : (
+        <button className="game-switch back" onClick={() => setSection('okey')}>
+          <span aria-hidden>←</span>
+          <span className="grow">
+            <strong>101 Okey'e dön</strong>
+            <span className="small muted block">101 Okey ana ekranı</span>
+          </span>
+          <span className="gs-icon" aria-hidden>
+            101
+          </span>
+        </button>
+      )}
+
       <section className="hero-actions">
         <div className="quick-bots">
-          <button className="btn primary big grow" onClick={() => send({ t: 'quick.bots', options: { teamMode: quickTeam, botLevel: quickLevel } })}>
+          <button className="btn primary big grow" onClick={() => send({ t: 'quick.bots', game, options: { teamMode: quickTeam, botLevel: quickLevel } })}>
             🤖 Botlarla hemen oyna
             <span className="small quick-sub">
               {quickTeam ? 'Eşli' : 'Tekli'} · {quickLevel === 'easy' ? 'Kolay' : 'Normal'} bot
@@ -65,7 +93,7 @@ export function LobbyScreen() {
             </button>
           </div>
         </div>
-        <button className="btn big" onClick={() => send({ t: 'quick.match' })}>
+        <button className="btn big" onClick={() => send({ t: 'quick.match', game })}>
           ⚡ Hızlı eşleş
         </button>
         <button className="btn big" onClick={() => setShowCreate((v) => !v)}>
@@ -73,7 +101,8 @@ export function LobbyScreen() {
         </button>
       </section>
 
-      {showCreate && <CreateTable onDone={() => setShowCreate(false)} />}
+      {showCreate &&
+        (game === 'batak' ? <CreateBatakTable onDone={() => setShowCreate(false)} /> : <CreateTable onDone={() => setShowCreate(false)} />)}
 
       <form
         className="card row"
@@ -97,14 +126,14 @@ export function LobbyScreen() {
 
       <section className="card">
         <h2>Açık masalar</h2>
-        {app.lobbies.length === 0 && <p className="muted">Şu an açık masa yok. Bir masa oluşturun veya hızlı eşleşin.</p>}
+        {lobbies.length === 0 && <p className="muted">Şu an açık masa yok. Bir masa oluşturun veya hızlı eşleşin.</p>}
         <ul className="lobby-list">
-          {app.lobbies.map((l) => (
+          {lobbies.map((l) => (
             <li key={l.id}>
               <div>
                 <strong>{l.name}</strong>
                 <div className="muted small">
-                  {l.players}/4 oyuncu · {l.roundLimit} el · {l.turnSeconds} sn{l.allowPairs ? ' · çift açık' : ''}{l.teamMode ? ' · eşli' : ''}{l.botLevel === 'easy' ? ' · kolay bot' : l.botLevel === 'mixed' ? ' · karışık bot' : ''}
+                  {l.players}/4 oyuncu · {l.info}
                 </div>
               </div>
               {l.status === 'PLAYING' ? (
@@ -118,7 +147,11 @@ export function LobbyScreen() {
           ))}
         </ul>
       </section>
-      <p className="muted small center">İpucu: Telefonda yatay tutmak ıstakayı büyütür. Ana ekrana ekleyerek uygulama gibi açabilirsiniz.</p>
+      <p className="muted small center">
+        {game === 'okey'
+          ? 'İpucu: Telefonda yatay tutmak ıstakayı büyütür. Ana ekrana ekleyerek uygulama gibi açabilirsiniz.'
+          : 'İpucu: Kartınıza bir kez dokunup seçin, tekrar dokununca oynanır.'}
+      </p>
     </div>
   );
 }
@@ -142,7 +175,7 @@ function CreateTable({ onDone }: { onDone: () => void }) {
       className="card form-grid"
       onSubmit={(e) => {
         e.preventDefault();
-        send({ t: 'lobby.create', name: name || undefined, isPrivate, options: opts });
+        send({ t: 'lobby.create', game: 'okey', name: name || undefined, isPrivate, options: opts });
         onDone();
       }}
     >
@@ -211,6 +244,104 @@ function CreateTable({ onDone }: { onDone: () => void }) {
           onChange={(e) => setOpts({ ...opts, jokerSwapMustUse: e.target.checked })}
         />
         Masadan alınan okey aynı tur kullanılmalı
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={isPrivate} onChange={(e) => setPrivate(e.target.checked)} />
+        Özel masa (yalnız davet koduyla)
+      </label>
+      <button className="btn primary block">Oluştur</button>
+    </form>
+  );
+}
+
+function CreateBatakTable({ onDone }: { onDone: () => void }) {
+  const [name, setName] = useState('');
+  const [isPrivate, setPrivate] = useState(false);
+  const [opts, setOpts] = useState<Required<BatakTableOptions>>({
+    teamMode: false,
+    roundLimit: 10,
+    turnSeconds: 30,
+    minBid: 5,
+    mustTrumpIfVoid: false,
+    mustBeatIfPossible: false,
+    allPassRedeal: false,
+    botLevel: 'normal',
+  });
+  const minChoices = opts.teamMode ? [7, 8] : [4, 5];
+  return (
+    <form
+      className="card form-grid"
+      onSubmit={(e) => {
+        e.preventDefault();
+        send({ t: 'lobby.create', game: 'batak', name: name || undefined, isPrivate, options: opts });
+        onDone();
+      }}
+    >
+      <label>
+        Masa adı
+        <input value={name} maxLength={30} onChange={(e) => setName(e.target.value)} placeholder="isteğe bağlı" />
+      </label>
+      <label>
+        Oyun türü
+        <select
+          value={opts.teamMode ? 'team' : 'solo'}
+          onChange={(e) => {
+            const teamMode = e.target.value === 'team';
+            setOpts({ ...opts, teamMode, minBid: teamMode ? 8 : 5 });
+          }}
+        >
+          <option value="solo">İhaleli tekli</option>
+          <option value="team">İhaleli eşli</option>
+        </select>
+      </label>
+      <label>
+        Minimum ihale
+        <select value={opts.minBid} onChange={(e) => setOpts({ ...opts, minBid: Number(e.target.value) })}>
+          {minChoices.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Dağıtım sayısı
+        <select value={opts.roundLimit} onChange={(e) => setOpts({ ...opts, roundLimit: Number(e.target.value) })}>
+          {[1, 3, 5, 7, 10, 11].map((n) => (
+            <option key={n} value={n}>
+              {n} dağıtım
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Kart süresi
+        <select value={opts.turnSeconds} onChange={(e) => setOpts({ ...opts, turnSeconds: Number(e.target.value) })}>
+          {[15, 20, 30, 45, 60].map((n) => (
+            <option key={n} value={n}>
+              {n} sn
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        Bot seviyesi
+        <select value={opts.botLevel} onChange={(e) => setOpts({ ...opts, botLevel: e.target.value as BotLevel })}>
+          <option value="normal">Normal</option>
+          <option value="easy">Kolay</option>
+        </select>
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={opts.mustTrumpIfVoid} onChange={(e) => setOpts({ ...opts, mustTrumpIfVoid: e.target.checked })} />
+        Renk yoksa koz atmak zorunlu
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={opts.mustBeatIfPossible} onChange={(e) => setOpts({ ...opts, mustBeatIfPossible: e.target.checked })} />
+        Yükseltme zorunlu (eli geçebiliyorsan geç)
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={opts.allPassRedeal} onChange={(e) => setOpts({ ...opts, allPassRedeal: e.target.checked })} />
+        Herkes pas geçerse yeniden dağıt (kapalıysa son oyuncu ihaleyi alır)
       </label>
       <label className="check">
         <input type="checkbox" checked={isPrivate} onChange={(e) => setPrivate(e.target.checked)} />
