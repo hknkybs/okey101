@@ -348,3 +348,23 @@ describe('açık eş (eşli: ihalecinin eşi kartlarını açar, o eli ihaleci o
     expect(buildBatakRules({ openPartnerHand: true }).play.openPartnerHand).toBe(false);
   });
 });
+
+describe('renk kalmadı bilgisi', () => {
+  it('renge uymayan oyuncunun o rengi kalmadığı herkese açık kaydedilir', () => {
+    let m = createBatakMatch(IND, seededRng(21), 3);
+    m = applyBatak(m, 0, { type: 'bid', value: 5 });
+    for (const seat of [1, 2, 3]) m = applyBatak(m, seat, { type: 'pass' });
+    m = applyBatak(m, 0, { type: 'choose_trump', suit: 'S' });
+    // Kurgu: 0 kupa açar, 1'in elinde kupa yok
+    const r = m.round;
+    r.hands[0] = [C('H', 9), C('D', 2)];
+    r.hands[1] = [C('S', 5), C('C', 3)];
+    r.hands[2] = [C('H', 4), C('C', 9)];
+    r.hands[3] = [C('H', 7), C('D', 5)];
+    m = applyBatak(m, 0, { type: 'play_card', cardId: r.hands[0][0].id });
+    m = applyBatak(m, 1, { type: 'play_card', cardId: m.round.hands[1][0].id }); // koz ile keser
+    expect(m.round.voids[1]).toEqual(['H']);
+    expect(m.round.voids[0]).toEqual([]);
+    expect(batakViewFor(m, 3).voids[1]).toEqual(['H']);
+  });
+});

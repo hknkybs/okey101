@@ -42,6 +42,7 @@ export function dealBatakRound(roundNo: number, dealer: number, rng: Rng): Batak
     tricksWon: [0, 0, 0, 0],
     lastTrick: null,
     played: [],
+    voids: [[], [], [], []],
   };
 }
 
@@ -199,6 +200,8 @@ export function applyBatak(m: BatakMatch, seat: number, cmd: BatakCommand, rng?:
       const legal = legalCards(hand, r.trick, r.trump!, r.trumpBroken, rules);
       if (!legal.some((c) => c.id === card.id)) throw rejectReason(card, hand, r.trick, r.trump!);
       r.hands[seat] = hand.filter((c) => c.id !== card.id);
+      const lead = r.trick[0]?.card.suit;
+      if (lead && card.suit !== lead && !r.voids[seat].includes(lead)) r.voids[seat].push(lead);
       r.trick.push({ seat, card });
       r.played.push(card);
       if (card.suit === r.trump) r.trumpBroken = true;
@@ -361,6 +364,8 @@ export interface BatakView {
   trickNo: number;
   tricksWon: number[];
   lastTrick: BatakRound['lastTrick'];
+  /** Oyuncuların elinde kalmadığı görülen renkler. */
+  voids: Suit[][];
   /** Sıra sizdeyse (kendi ya da açık eşinizin elinden) oynayabileceğiniz kartlar. */
   legalCardIds: string[];
   /** Hamleyi yapacak oyuncu (açık eşin sırasında ihaleci). */
@@ -405,6 +410,7 @@ export function batakViewFor(m: BatakMatch, seat: number): BatakView {
     trickNo: r.trickNo,
     tricksWon: r.tricksWon,
     lastTrick: r.lastTrick,
+    voids: r.voids ?? [[], [], [], []],
     legalCardIds: myTurn ? legalCards(r.hands[r.activeSeat], r.trick, r.trump!, r.trumpBroken, m.rules).map((c) => c.id) : [],
     actorSeat: actor,
     dummySeat: dummy,

@@ -150,6 +150,11 @@ export function BatakTable({ view }: { view: BatakClientView }) {
           {trickCards.map((p) => (
             <div key={p.card.id} className={`trick-slot ${posOf(p.seat)} ${showingLast ? 'faded' : ''}`}>
               <CardView card={p.card} size="trick" highlight={showingLast && view.lastTrick!.winner === p.seat} />
+              {view.trump && p.card.suit === view.trump && trickCards[0].card.suit !== view.trump && (
+                <span className="cut-tag" title="Renk yoktu, kozla kesti">
+                  koz
+                </span>
+              )}
             </div>
           ))}
           {showingLast && <div className="trick-caption small">{name(view.lastTrick!.winner)} aldı</div>}
@@ -263,6 +268,11 @@ function BatakSeat({ view, seat, pos, bid }: { view: BatakClientView; seat: numb
         {view.phase === 'BIDDING' && bid && <span className={`chip tiny ${bid === 'Pas' ? '' : 'ok'}`}>{bid}</span>}
         {view.bidder === seat && view.phase !== 'BIDDING' && <span className="chip tiny ok">İhale {view.highBid}</span>}
         {view.dummySeat === seat && <span className="chip tiny">Açık el</span>}
+        {view.voids[seat]?.map((s) => (
+          <span key={s} className={`chip tiny void ${isRed(s) ? 'red' : ''}`} title={`${SUIT_NAME[s]} kalmadı`}>
+            {SUIT_SYMBOL[s]} yok
+          </span>
+        ))}
       </div>
       <div className="meta small">
         <span>

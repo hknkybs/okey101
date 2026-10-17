@@ -42,6 +42,8 @@ export interface BatakRound {
   tricksWon: number[];
   lastTrick: { cards: PlayedCard[]; winner: number } | null;
   played: Card[]; // bu dağıtımda oynanmış tüm kartlar (herkese açık bilgi)
+  /** Renge uymadığı görülen oyuncuların o renkte kartı kalmamıştır (herkese açık bilgi). */
+  voids: Suit[][];
 }
 
 export type BatakCommand =
