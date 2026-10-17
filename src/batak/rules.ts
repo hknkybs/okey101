@@ -62,7 +62,8 @@ export function buildBatakRules(o: BatakTableOptions = {}): BatakRuleset {
       allPass: o.allPassRedeal ? 'redeal' : 'force_last',
     },
     play: {
-      mustTrumpIfVoid: !!o.mustTrumpIfVoid,
+      // Yaygın kural: açılan renk yoksa koz atmak zorunlu, koz da yoksa istenen kart.
+      mustTrumpIfVoid: o.mustTrumpIfVoid ?? true,
       mustBeatIfPossible: !!o.mustBeatIfPossible,
       mustLeadTrumpBeforeBroken: true,
       openPartnerHand: mode === 'partnership' && (o.openPartnerHand ?? true),
@@ -114,7 +115,9 @@ export function describeBatakRules(r: BatakRuleset): string[] {
       ? ['Koz seçilince ihalecinin eşi kartlarını açar (herkes görür); eşin elini ihaleci oynar, eş izler']
       : []),
     'Renge uymak zorunlu',
-    r.play.mustTrumpIfVoid ? 'Açılan renk yoksa koz atmak zorunlu' : 'Açılan renk yoksa istenen kart atılabilir',
+    r.play.mustTrumpIfVoid
+      ? 'Açılan renk yoksa koz atmak zorunlu; koz da yoksa istenen kart atılır'
+      : 'Açılan renk yoksa istenen kart atılabilir (koz zorunlu değil)',
     r.play.mustBeatIfPossible ? 'Eli geçebiliyorsanız geçmek zorunlu (yükseltme)' : 'Yükseltme zorunluluğu yok',
     'Koz açılmadan kozla çıkılamaz (elde yalnız koz kaldıysa serbest)',
     partner

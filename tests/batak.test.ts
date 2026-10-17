@@ -154,12 +154,17 @@ describe('kart kuralları', () => {
     expect(legalCards([C('H', 5), C('H', 7)], [], 'H', false, IND)).toHaveLength(2);
   });
 
-  it('renk yoksa: varsayılanda serbest; ayarla koz zorunlu', () => {
+  it('renk yoksa: varsayılanda koz zorunlu, koz da yoksa istenen kart; ayarla serbest', () => {
+    // Koz Kupa, yer Maça, elde maça yok
     const hand = [C('H', 5), C('D', 9)];
     const trick = [P(0, C('S', 10))];
-    expect(legalCards(hand, trick, 'H', false, IND)).toHaveLength(2);
-    const strict = buildBatakRules({ mustTrumpIfVoid: true });
-    expect(legalCards(hand, trick, 'H', false, strict).map((c) => c.suit)).toEqual(['H']);
+    expect(IND.play.mustTrumpIfVoid).toBe(true);
+    expect(TEAM.play.mustTrumpIfVoid).toBe(true);
+    expect(legalCards(hand, trick, 'H', false, IND).map((c) => c.suit)).toEqual(['H']);
+    // koz da yoksa her kart serbest
+    expect(legalCards([C('D', 9), C('C', 3)], trick, 'H', false, IND)).toHaveLength(2);
+    const free = buildBatakRules({ mustTrumpIfVoid: false });
+    expect(legalCards(hand, trick, 'H', false, free)).toHaveLength(2);
   });
 
   it('yükseltme zorunluluğu: kapalıyken serbest, açıkken geçen kart zorunlu', () => {

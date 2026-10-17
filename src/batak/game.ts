@@ -201,7 +201,11 @@ export function applyBatak(m: BatakMatch, seat: number, cmd: BatakCommand, rng?:
       if (!legal.some((c) => c.id === card.id)) throw rejectReason(card, hand, r.trick, r.trump!);
       r.hands[seat] = hand.filter((c) => c.id !== card.id);
       const lead = r.trick[0]?.card.suit;
-      if (lead && card.suit !== lead && !r.voids[seat].includes(lead)) r.voids[seat].push(lead);
+      if (lead && card.suit !== lead) {
+        if (!r.voids[seat].includes(lead)) r.voids[seat].push(lead);
+        // Koz zorunluyken koz atmadıysa kozu da kalmamıştır.
+        if (rules.play.mustTrumpIfVoid && card.suit !== r.trump && !r.voids[seat].includes(r.trump!)) r.voids[seat].push(r.trump!);
+      }
       r.trick.push({ seat, card });
       r.played.push(card);
       if (card.suit === r.trump) r.trumpBroken = true;

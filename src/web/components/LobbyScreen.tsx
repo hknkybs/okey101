@@ -265,7 +265,7 @@ function CreateBatakTable({ onDone }: { onDone: () => void }) {
     roundLimit: 10,
     turnSeconds: 60,
     minBid: 5,
-    mustTrumpIfVoid: false,
+    mustTrumpIfVoid: true,
     mustBeatIfPossible: false,
     allPassRedeal: false,
     openPartnerHand: true,
@@ -355,7 +355,7 @@ function CreateBatakTable({ onDone }: { onDone: () => void }) {
       </label>
       <label className="check">
         <input type="checkbox" checked={opts.mustTrumpIfVoid} onChange={(e) => setOpts({ ...opts, mustTrumpIfVoid: e.target.checked })} />
-        Renk yoksa koz atmak zorunlu
+        Renk yoksa koz atmak zorunlu (koz da yoksa istenen kart)
       </label>
       <label className="check">
         <input type="checkbox" checked={opts.mustBeatIfPossible} onChange={(e) => setOpts({ ...opts, mustBeatIfPossible: e.target.checked })} />
