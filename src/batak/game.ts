@@ -414,7 +414,8 @@ export function batakViewFor(m: BatakMatch, seat: number): BatakView {
     trickNo: r.trickNo,
     tricksWon: r.tricksWon,
     lastTrick: r.lastTrick,
-    voids: r.voids ?? [[], [], [], []],
+    // İpucu kapalıysa gönderilmez; oyuncu kendisi takip eder.
+    voids: m.rules.hints?.showVoids ? (r.voids ?? [[], [], [], []]) : [[], [], [], []],
     legalCardIds: myTurn ? legalCards(r.hands[r.activeSeat], r.trick, r.trump!, r.trumpBroken, m.rules).map((c) => c.id) : [],
     actorSeat: actor,
     dummySeat: dummy,

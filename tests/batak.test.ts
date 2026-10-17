@@ -355,8 +355,8 @@ describe('açık eş (eşli: ihalecinin eşi kartlarını açar, o eli ihaleci o
 });
 
 describe('renk kalmadı bilgisi', () => {
-  it('renge uymayan oyuncunun o rengi kalmadığı herkese açık kaydedilir', () => {
-    let m = createBatakMatch(IND, seededRng(21), 3);
+  it('renge uymayan oyuncunun o rengi kalmadığı kaydedilir; yalnız ipucu açıksa gösterilir', () => {
+    let m = createBatakMatch(buildBatakRules({ showVoids: true }), seededRng(21), 3);
     m = applyBatak(m, 0, { type: 'bid', value: 5 });
     for (const seat of [1, 2, 3]) m = applyBatak(m, seat, { type: 'pass' });
     m = applyBatak(m, 0, { type: 'choose_trump', suit: 'S' });
@@ -371,5 +371,10 @@ describe('renk kalmadı bilgisi', () => {
     expect(m.round.voids[1]).toEqual(['H']);
     expect(m.round.voids[0]).toEqual([]);
     expect(batakViewFor(m, 3).voids[1]).toEqual(['H']);
+    // varsayılan: ipucu kapalı, bilgi istemciye hiç gitmez
+    const hidden = structuredClone(m);
+    hidden.rules = IND;
+    expect(IND.hints.showVoids).toBe(false);
+    expect(batakViewFor(hidden, 3).voids).toEqual([[], [], [], []]);
   });
 });

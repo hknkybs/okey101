@@ -270,6 +270,7 @@ function CreateBatakTable({ onDone }: { onDone: () => void }) {
     allPassRedeal: false,
     openPartnerHand: true,
     minDefenderTricks: 0,
+    showVoids: false,
     botLevel: 'normal',
   });
   const minChoices = opts.teamMode ? [7, 8] : [4, 5];
@@ -360,6 +361,10 @@ function CreateBatakTable({ onDone }: { onDone: () => void }) {
       <label className="check">
         <input type="checkbox" checked={opts.mustBeatIfPossible} onChange={(e) => setOpts({ ...opts, mustBeatIfPossible: e.target.checked })} />
         Yükseltme zorunlu (eli geçebiliyorsan geç)
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={opts.showVoids} onChange={(e) => setOpts({ ...opts, showVoids: e.target.checked })} />
+        İpucu: kimde hangi rengin kalmadığını göster (kolaylaştırır)
       </label>
       <label className="check">
         <input type="checkbox" checked={opts.allPassRedeal} onChange={(e) => setOpts({ ...opts, allPassRedeal: e.target.checked })} />

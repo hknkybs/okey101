@@ -28,6 +28,10 @@ export interface BatakRuleset {
     minDefenderTricks: number;
   };
   match: { roundLimit: number };
+  hints: {
+    /** Renge uymayan oyuncunun hangi rengi kalmadığını ekranda göster (varsayılan kapalı: oyuncu kendisi takip eder). */
+    showVoids: boolean;
+  };
   timers: {
     bidSeconds: number;
     playSeconds: number;
@@ -47,6 +51,7 @@ export interface BatakTableOptions {
   allPassRedeal?: boolean;
   openPartnerHand?: boolean;
   minDefenderTricks?: number;
+  showVoids?: boolean;
   botLevel?: BotLevel;
 }
 
@@ -70,6 +75,7 @@ export function buildBatakRules(o: BatakTableOptions = {}): BatakRuleset {
     },
     scoring: { nonBidderPerTrick: 10, opponentsPerTrick: 0, minDefenderTricks: clamp(o.minDefenderTricks ?? 0, 0, 4) },
     match: { roundLimit: clamp(o.roundLimit ?? 10, 1, 11) },
+    hints: { showVoids: !!o.showVoids },
     timers: {
       // İhale/koz süresi kart süresinin yarısı, en az 20 sn (60 sn → 30 sn, 120 sn → 60 sn).
       bidSeconds: Math.max(20, Math.round(clamp(o.turnSeconds ?? 60, 15, 120) / 2)),
@@ -92,6 +98,7 @@ export function normalizeBatakOptions(o: BatakTableOptions = {}): Required<Batak
     allPassRedeal: r.bidding.allPass === 'redeal',
     openPartnerHand: r.mode === 'partnership' ? r.play.openPartnerHand : (o.openPartnerHand ?? true),
     minDefenderTricks: r.scoring.minDefenderTricks,
+    showVoids: r.hints.showVoids,
     botLevel: o.botLevel === 'easy' ? 'easy' : 'normal',
   };
 }
@@ -130,6 +137,7 @@ export function describeBatakRules(r: BatakRuleset): string[] {
             : `İhaleye girmeyen her oyuncu en az ${r.scoring.minDefenderTricks} el almalı; alamayan −ihale×10`,
         ]
       : []),
+    ...(r.hints.showVoids ? ['İpucu açık: renge uymayan oyuncunun hangi rengi kalmadığı gösterilir'] : []),
     `İhale süresi ${r.timers.bidSeconds} sn, kart süresi ${r.timers.playSeconds} sn`,
     `Maç: ${r.match.roundLimit} dağıtım, yüksek puan kazanır`,
   ];
