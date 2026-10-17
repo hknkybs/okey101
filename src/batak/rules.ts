@@ -21,6 +21,11 @@ export interface BatakRuleset {
   scoring: {
     nonBidderPerTrick: number; // tekli: ihale dışı oyuncuya el başına puan
     opponentsPerTrick: number; // eşli: rakip takıma el başına puan (varsayılan 0)
+    /**
+     * İhaleye girmeyenlerin en az alması gereken el (0 = kapalı). Eşli: rakip takımın toplamı;
+     * tekli: ihaleye girmeyen her oyuncu. Alamayan ihale×10 puan kaybeder.
+     */
+    minDefenderTricks: number;
   };
   match: { roundLimit: number };
   timers: {
@@ -41,6 +46,7 @@ export interface BatakTableOptions {
   mustBeatIfPossible?: boolean;
   allPassRedeal?: boolean;
   openPartnerHand?: boolean;
+  minDefenderTricks?: number;
   botLevel?: BotLevel;
 }
 
@@ -61,11 +67,12 @@ export function buildBatakRules(o: BatakTableOptions = {}): BatakRuleset {
       mustLeadTrumpBeforeBroken: true,
       openPartnerHand: mode === 'partnership' && (o.openPartnerHand ?? true),
     },
-    scoring: { nonBidderPerTrick: 10, opponentsPerTrick: 0 },
+    scoring: { nonBidderPerTrick: 10, opponentsPerTrick: 0, minDefenderTricks: clamp(o.minDefenderTricks ?? 0, 0, 4) },
     match: { roundLimit: clamp(o.roundLimit ?? 10, 1, 11) },
     timers: {
-      bidSeconds: 20,
-      playSeconds: clamp(o.turnSeconds ?? 30, 15, 60),
+      // İhale/koz süresi kart süresinin yarısı, en az 20 sn (60 sn → 30 sn, 120 sn → 60 sn).
+      bidSeconds: Math.max(20, Math.round(clamp(o.turnSeconds ?? 60, 15, 120) / 2)),
+      playSeconds: clamp(o.turnSeconds ?? 60, 15, 120),
       reconnectGraceSeconds: 30,
       timeoutsBeforeBot: 3,
     },
@@ -83,6 +90,7 @@ export function normalizeBatakOptions(o: BatakTableOptions = {}): Required<Batak
     mustBeatIfPossible: r.play.mustBeatIfPossible,
     allPassRedeal: r.bidding.allPass === 'redeal',
     openPartnerHand: r.mode === 'partnership' ? r.play.openPartnerHand : (o.openPartnerHand ?? true),
+    minDefenderTricks: r.scoring.minDefenderTricks,
     botLevel: o.botLevel === 'easy' ? 'easy' : 'normal',
   };
 }
@@ -112,6 +120,13 @@ export function describeBatakRules(r: BatakRuleset): string[] {
     partner
       ? `Puan: ihaleci takım tutarsa +ihale×10, batarsa −ihale×10${r.scoring.opponentsPerTrick ? `; rakip takıma el başına +${r.scoring.opponentsPerTrick}` : '; rakip takıma puan yok'}`
       : `Puan: ihaleci tutarsa +ihale×10, batarsa −ihale×10; diğerlerine aldıkları el×${r.scoring.nonBidderPerTrick}`,
+    ...(r.scoring.minDefenderTricks
+      ? [
+          partner
+            ? `Rakip takım en az ${r.scoring.minDefenderTricks} el almalı; alamazsa −ihale×10`
+            : `İhaleye girmeyen her oyuncu en az ${r.scoring.minDefenderTricks} el almalı; alamayan −ihale×10`,
+        ]
+      : []),
     `İhale süresi ${r.timers.bidSeconds} sn, kart süresi ${r.timers.playSeconds} sn`,
     `Maç: ${r.match.roundLimit} dağıtım, yüksek puan kazanır`,
   ];

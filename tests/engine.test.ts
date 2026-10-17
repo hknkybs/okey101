@@ -22,6 +22,15 @@ const T = (color: Color, number: number): Tile => ({ id: `x${++idc}`, kind: 'N',
 const F = (): Tile => ({ id: `f${++idc}`, kind: 'F' });
 const OKEY: Face = { color: 'R', number: 5 }; // gerçek okey: Kırmızı 5
 
+describe('101 hamle süresi', () => {
+  it('varsayılan 60 sn; 90 ve 120 seçilebilir, üst sınır 120', () => {
+    expect(DEFAULT_RULES.round.maxTurnSeconds).toBe(60);
+    expect(buildRules({ turnSeconds: 90 }).round.maxTurnSeconds).toBe(90);
+    expect(buildRules({ turnSeconds: 120 }).round.maxTurnSeconds).toBe(120);
+    expect(buildRules({ turnSeconds: 300 }).round.maxTurnSeconds).toBe(120);
+  });
+});
+
 describe('taş seti ve okey', () => {
   it('106 benzersiz taş: 104 normal + 2 sahte', () => {
     let i = 0;

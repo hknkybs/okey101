@@ -4,6 +4,9 @@ import type { BotLevel, TableOptions } from '../../engine/rules.ts';
 import { GAME_NAME, type GameId } from '../../shared/protocol.ts';
 import { send, setSection, useApp } from '../net.ts';
 
+/** Hamle süresi seçenekleri (sn). Çocuklarla oynayanlar için 90 ve 120 de var. */
+const TURN_SECONDS = [15, 20, 30, 45, 60, 90, 120];
+
 /** Her iki oyunun ana ekranı: hızlı oyun, eşleşme, masa oluşturma, davet kodu ve açık masalar. */
 export function LobbyScreen({ game }: { game: GameId }) {
   const app = useApp();
@@ -161,7 +164,7 @@ function CreateTable({ onDone }: { onDone: () => void }) {
   const [isPrivate, setPrivate] = useState(false);
   const [opts, setOpts] = useState<Required<TableOptions>>({
     roundLimit: 10,
-    turnSeconds: 30,
+    turnSeconds: 60,
     allowPairs: true,
     onlyOwnMelds: false,
     allowJokerSwap: true,
@@ -196,7 +199,7 @@ function CreateTable({ onDone }: { onDone: () => void }) {
       <label>
         Hamle süresi
         <select value={opts.turnSeconds} onChange={(e) => setOpts({ ...opts, turnSeconds: Number(e.target.value) })}>
-          {[15, 20, 30, 45, 60].map((n) => (
+          {TURN_SECONDS.map((n) => (
             <option key={n} value={n}>
               {n} sn
             </option>
@@ -260,12 +263,13 @@ function CreateBatakTable({ onDone }: { onDone: () => void }) {
   const [opts, setOpts] = useState<Required<BatakTableOptions>>({
     teamMode: false,
     roundLimit: 10,
-    turnSeconds: 30,
+    turnSeconds: 60,
     minBid: 5,
     mustTrumpIfVoid: false,
     mustBeatIfPossible: false,
     allPassRedeal: false,
     openPartnerHand: true,
+    minDefenderTricks: 0,
     botLevel: 'normal',
   });
   const minChoices = opts.teamMode ? [7, 8] : [4, 5];
@@ -318,7 +322,7 @@ function CreateBatakTable({ onDone }: { onDone: () => void }) {
       <label>
         Kart süresi
         <select value={opts.turnSeconds} onChange={(e) => setOpts({ ...opts, turnSeconds: Number(e.target.value) })}>
-          {[15, 20, 30, 45, 60].map((n) => (
+          {TURN_SECONDS.map((n) => (
             <option key={n} value={n}>
               {n} sn
             </option>
@@ -338,6 +342,17 @@ function CreateBatakTable({ onDone }: { onDone: () => void }) {
           İhalecinin eşi kartlarını açar, o eli ihaleci oynar
         </label>
       )}
+      <label className="wide">
+        {opts.teamMode ? 'Rakip takım en az … el almalı' : 'İhaleye girmeyen her oyuncu en az … el almalı'}
+        <select value={opts.minDefenderTricks} onChange={(e) => setOpts({ ...opts, minDefenderTricks: Number(e.target.value) })}>
+          <option value={0}>Kapalı</option>
+          {[1, 2, 3, 4].map((n) => (
+            <option key={n} value={n}>
+              {n} el (alamazsa −ihale×10)
+            </option>
+          ))}
+        </select>
+      </label>
       <label className="check">
         <input type="checkbox" checked={opts.mustTrumpIfVoid} onChange={(e) => setOpts({ ...opts, mustTrumpIfVoid: e.target.checked })} />
         Renk yoksa koz atmak zorunlu

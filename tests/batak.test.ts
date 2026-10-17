@@ -45,6 +45,18 @@ const expectCode = (fn: () => unknown, code: string) => {
 const IND = buildBatakRules();
 const TEAM = buildBatakRules({ teamMode: true });
 
+describe('süreler', () => {
+  it('varsayılan kart süresi 60 sn, ihale 30 sn; 120 sn seçilebilir', () => {
+    expect(IND.timers.playSeconds).toBe(60);
+    expect(IND.timers.bidSeconds).toBe(30);
+    const long = buildBatakRules({ turnSeconds: 120 });
+    expect(long.timers.playSeconds).toBe(120);
+    expect(long.timers.bidSeconds).toBe(60);
+    expect(buildBatakRules({ turnSeconds: 15 }).timers.bidSeconds).toBe(20);
+    expect(buildBatakRules({ turnSeconds: 500 }).timers.playSeconds).toBe(120);
+  });
+});
+
 describe('deste ve dağıtım', () => {
   it('52 benzersiz kart, joker yok, her renk-değer bir kez', () => {
     let i = 0;
@@ -200,6 +212,23 @@ describe('puan', () => {
   it('tekli: tutarsa +ihale×10, batarsa −ihale×10, diğerleri el×10; fazla el bonus yok', () => {
     expect(calculateBatakScore(roundWith([6, 3, 2, 2], 0, 5), IND).scores.map((s) => s.finalScore)).toEqual([50, 30, 20, 20]);
     expect(calculateBatakScore(roundWith([4, 3, 3, 3], 0, 5), IND).scores.map((s) => s.finalScore)).toEqual([-50, 30, 30, 30]);
+  });
+
+  it('en az el kuralı (tekli): ihaleye girmeyen oyuncu N el alamazsa −ihale×10', () => {
+    const rules = buildBatakRules({ minDefenderTricks: 2 });
+    // ihaleci 0 (6 dedi, 8 aldı); 1 → 3 el, 2 → 1 el (battı), 3 → 1 el (battı)
+    const res = calculateBatakScore(roundWith([8, 3, 1, 1], 0, 6), rules);
+    expect(res.scores.map((s) => s.finalScore)).toEqual([60, 30, -60, -60]);
+    expect(calculateBatakScore(roundWith([8, 3, 1, 1], 0, 6), IND).scores.map((s) => s.finalScore)).toEqual([60, 30, 10, 10]);
+  });
+
+  it('en az el kuralı (eşli): rakip takım toplamı N altındaysa takım −ihale×10', () => {
+    const rules = buildBatakRules({ teamMode: true, minDefenderTricks: 3 });
+    // ihaleci takım 0+2: 6+5 = 11; rakip 1+3: 1+1 = 2 < 3 → rakip battı
+    expect(calculateBatakScore(roundWith([6, 1, 5, 1], 0, 9), rules).scores.map((s) => s.finalScore)).toEqual([90, -90, 90, -90]);
+    // rakip 3 el aldıysa ceza yok
+    expect(calculateBatakScore(roundWith([5, 2, 5, 1], 0, 9), rules).scores.map((s) => s.finalScore)).toEqual([90, 0, 90, 0]);
+    expect(buildBatakRules({ minDefenderTricks: 9 }).scoring.minDefenderTricks).toBe(4);
   });
 
   it('eşli: takım toplamı sayılır; rakip takıma varsayılan puan yok', () => {

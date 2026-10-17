@@ -271,13 +271,16 @@ export function calculateBatakScore(r: BatakRound, rules: BatakRuleset): BatakRo
   const bidderTricks = partnership ? r.tricksWon[bidder] + r.tricksWon[partnerOf(bidder)] : r.tricksWon[bidder];
   const made = bidderTricks >= bid;
   const contract = made ? bid * 10 : -bid * 10;
+  const minDef = rules.scoring.minDefenderTricks;
 
   const scores: BatakRoundScore[] = [0, 1, 2, 3].map((seat) => {
     const tricks = r.tricksWon[seat];
     if (partnership) {
       const myTeam = teamOf(seat) === teamOf(bidder);
       const teamTricks = tricks + r.tricksWon[partnerOf(seat)];
-      const score = myTeam ? contract : teamTricks * rules.scoring.opponentsPerTrick;
+      // Rakip takım en az `minDef` el alamazsa ihale kadar batar.
+      const defenderFailed = !myTeam && minDef > 0 && teamTricks < minDef;
+      const score = myTeam ? contract : defenderFailed ? -bid * 10 : teamTricks * rules.scoring.opponentsPerTrick;
       return {
         seat,
         bid: seat === bidder ? bid : null,
@@ -286,13 +289,18 @@ export function calculateBatakScore(r: BatakRound, rules: BatakRuleset): BatakRo
         finalScore: score,
         reason: myTeam
           ? `İhaleci takım: ${bidderTricks}/${bid} el, ${made ? 'tuttu' : 'battı'}`
-          : rules.scoring.opponentsPerTrick
-            ? `Rakip takım: ${teamTricks} el × ${rules.scoring.opponentsPerTrick}`
-            : `Rakip takım: ${teamTricks} el`,
+          : defenderFailed
+            ? `Rakip takım: ${teamTricks} el, en az ${minDef} gerekiyordu — battı`
+            : rules.scoring.opponentsPerTrick
+              ? `Rakip takım: ${teamTricks} el × ${rules.scoring.opponentsPerTrick}`
+              : `Rakip takım: ${teamTricks} el`,
       };
     }
     if (seat === bidder) {
       return { seat, bid, tricks, baseScore: contract, finalScore: contract, reason: `İhale ${bid}, aldığı ${tricks}: ${made ? 'tuttu' : 'battı'}` };
+    }
+    if (minDef > 0 && tricks < minDef) {
+      return { seat, bid: null, tricks, baseScore: -bid * 10, finalScore: -bid * 10, reason: `${tricks} el, en az ${minDef} gerekiyordu — battı` };
     }
     const score = tricks * rules.scoring.nonBidderPerTrick;
     return { seat, bid: null, tricks, baseScore: score, finalScore: score, reason: `${tricks} el × ${rules.scoring.nonBidderPerTrick}` };

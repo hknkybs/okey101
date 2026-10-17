@@ -31,7 +31,7 @@ export function App() {
   } else if (app.lobby) {
     screen = <RoomScreen lobby={app.lobby} />;
   } else {
-    screen = <LobbyScreen game={app.section} />;
+    screen = <LobbyScreen key={app.section} game={app.section} />;
   }
 
   return (

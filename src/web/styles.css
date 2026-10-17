@@ -215,6 +215,7 @@ h3 {
 }
 .form-grid > :first-child,
 .form-grid .check,
+.form-grid .wide,
 .form-grid .btn {
   grid-column: 1 / -1;
 }

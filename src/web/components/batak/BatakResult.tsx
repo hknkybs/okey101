@@ -163,6 +163,11 @@ export function BatakScoreSheet({ view, onClose }: { view: BatakClientView; onCl
           <li>Renge uymak zorunlu; koz açılmadan kozla çıkılamaz</li>
           {view.rules.play.mustTrumpIfVoid && <li>Renk yoksa koz atmak zorunlu</li>}
           {view.rules.play.mustBeatIfPossible && <li>Eli geçebiliyorsanız geçmek zorunlu</li>}
+          {view.rules.scoring.minDefenderTricks > 0 && (
+            <li>
+              {team ? 'Rakip takım' : 'İhaleye girmeyen her oyuncu'} en az {view.rules.scoring.minDefenderTricks} el almalı; alamazsa −ihale×10
+            </li>
+          )}
           <li>
             {team
               ? 'İhaleci takım tutarsa +ihale×10, batarsa −ihale×10'

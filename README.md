@@ -86,7 +86,7 @@ tests/rack.test.ts    Istaka dizme testleri
 | Bitiş | Son taşı atarak; bitiren −101, açan elde kalan toplamı (+101/okey), açmayan +202 |
 | Çarpanlar | Okeyle bitiş ×2, çiftten bitiş ×2, birlikte ×4 |
 | Deste biterse | El kapanır, bitiren yok (açan elde kalan, açmayan 202) |
-| Süre | Hamle başına 30 sn (15–60); süre dolunca otomatik çek + en düşük taşı at; 3 ardışık zaman aşımında bot devralır ("Kontrolü al" ile geri alınır) |
+| Süre | Hamle başına 60 sn (15, 20, 30, 45, 60, 90, 120); süre dolunca otomatik çek + en düşük taşı at; 3 ardışık zaman aşımında bot devralır ("Kontrolü al" ile geri alınır) |
 | Kopma | 30 sn pencere; sonra koltuğu bot oynar, geri bağlanınca kontrol oyuncuya döner |
 | Maç | 10 el (1–11); düşük toplam ceza kazanır, eşitlikte galibiyet sayısı |
 | Eşli oyun (ayar) | Karşılıklı oturanlar takım (1–3 ve 2–4. koltuk); takım puanı iki oyuncunun toplamı, bireysel puanlar da gösterilir. Varsayılan: bitirenin eşi ceza almaz (ayarla kapatılabilir). "Sadece kendi perine işleme" eşli oyunda eşin perlerini de kapsar. Sıralama takım toplamına göre |
@@ -103,8 +103,9 @@ tests/rack.test.ts    Istaka dizme testleri
 | Oyun | Renge uymak zorunlu; renk yoksa serbest (ayar: koz zorunlu); yükseltme zorunluluğu yok (ayar: eli geçebiliyorsan geç — geçen herhangi bir kart) |
 | Tekli puan | İhaleci tutarsa +ihale×10, batarsa −ihale×10; diğerleri aldıkları el×10; fazla ele bonus yok |
 | Eşli puan | İhaleci takım (iki eşin toplam eli) tutarsa +ihale×10, batarsa −ihale×10; rakip takıma puan yok |
+| En az el (ayar, varsayılan kapalı) | 1–4 seçilir. Eşli: rakip takım toplamda bu kadar el alamazsa −ihale×10. Tekli: ihaleye girmeyen her oyuncu bu kadar el alamazsa −ihale×10 |
 | Maç | 10 dağıtım (1–11); yüksek puan kazanır, eşitlik beraberlik |
-| Süre | İhale/koz 20 sn, kart 30 sn (15–60); zaman aşımında pas (zorunluysa minimum teklif), en uzun renk koz, en küçük oynanabilir kart; 3 ardışık zaman aşımında bot devralır |
+| Süre | Kart 60 sn (15–120 arası seçilir), ihale/koz bunun yarısı, en az 20 sn; zaman aşımında pas (zorunluysa minimum teklif), en uzun renk koz, en küçük oynanabilir kart; 3 ardışık zaman aşımında bot devralır |
 
 Batak botu Normal seviyede elini ve koz adaylarını el tahminiyle değerlendirir, oynanmış kartları takip ederek "patron" kartları bilir, eşli oyunda eşinin teklifini ve eşi eli alıyorken kart harcamamayı hesaba katar. Ölçümde (5 dağıtımlık 300'er maç) Normal, Kolay'ı tekli maçların %82'sinde, eşli maçların %91'inde yendi.
 

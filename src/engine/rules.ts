@@ -52,7 +52,7 @@ export const DEFAULT_RULES: Ruleset = {
     partnerOfWinnerExempt: true,
   },
   layoff: { onlyOwnMelds: false },
-  round: { maxTurnSeconds: 30 },
+  round: { maxTurnSeconds: 60 },
   match: { roundLimit: 10, teamMode: false },
   reconnect: { graceSeconds: 30, timeoutsBeforeBot: 3 },
 };
@@ -77,7 +77,7 @@ export const BOT_LEVEL_LABEL: Record<BotLevel, string> = { easy: 'Kolay', normal
 export function buildRules(opts: TableOptions = {}): Ruleset {
   const r: Ruleset = structuredClone(DEFAULT_RULES);
   if (opts.roundLimit !== undefined) r.match.roundLimit = clamp(Math.round(opts.roundLimit), 1, 11);
-  if (opts.turnSeconds !== undefined) r.round.maxTurnSeconds = clamp(Math.round(opts.turnSeconds), 15, 60);
+  if (opts.turnSeconds !== undefined) r.round.maxTurnSeconds = clamp(Math.round(opts.turnSeconds), 15, 120);
   if (opts.allowPairs !== undefined) r.opening.allowPairs = !!opts.allowPairs;
   if (opts.onlyOwnMelds !== undefined) r.layoff.onlyOwnMelds = !!opts.onlyOwnMelds;
   if (opts.allowJokerSwap !== undefined) r.joker.allowSwap = !!opts.allowJokerSwap;
