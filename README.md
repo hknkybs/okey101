@@ -99,6 +99,7 @@ tests/rack.test.ts    Istaka dizme testleri
 | İhale | Tekli en az 5, eşli en az 8 (masa ayarı: 4–5 / 7–8); artış 1; pas geçen tekrar teklif veremez; 13 ihaleyi hemen kapatır |
 | Herkes pas | Son oyuncu en az minimum teklifle ihaleyi almak zorunda (ayar: yeniden dağıt) |
 | Koz | İhaleci seçer, ilk eli o açar; koz açılmadan kozla çıkılamaz (elde yalnız koz kaldıysa serbest) |
+| Açık eş (eşli, ayar — varsayılan açık) | Koz seçilince ihalecinin eşi kartlarını açar, herkes görür; eşin sırası gelince o eli ihaleci oynar, eş yalnız izler ("el açma"; bkz. [Joker Games eşli ihaleli batak kuralları](https://joker.games/support-center/esli-ihaleli-batak-oyun-kurallari/)) |
 | Oyun | Renge uymak zorunlu; renk yoksa serbest (ayar: koz zorunlu); yükseltme zorunluluğu yok (ayar: eli geçebiliyorsan geç — geçen herhangi bir kart) |
 | Tekli puan | İhaleci tutarsa +ihale×10, batarsa −ihale×10; diğerleri aldıkları el×10; fazla ele bonus yok |
 | Eşli puan | İhaleci takım (iki eşin toplam eli) tutarsa +ihale×10, batarsa −ihale×10; rakip takıma puan yok |

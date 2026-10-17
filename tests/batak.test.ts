@@ -3,6 +3,7 @@ import { batakBotCommand } from '../src/batak/bot.ts';
 import { createDeck } from '../src/batak/cards.ts';
 import { BatakError } from '../src/batak/errors.ts';
 import {
+  actorOf,
   applyBatak,
   batakTimeoutCommand,
   batakViewFor,
@@ -219,7 +220,7 @@ function playOut(m: BatakMatch, rng: Rng, style: 'smart' | 'basic' = 'smart') {
       m = startNextBatakRound(m, rng);
       continue;
     }
-    m = applyBatak(m, m.round.activeSeat, batakBotCommand(m, { style }), rng);
+    m = applyBatak(m, actorOf(m.round, m.rules), batakBotCommand(m, { style }), rng);
     if (++steps > 10000) throw new Error('sonsuz döngü');
   }
   return m;
@@ -260,5 +261,61 @@ describe('tam maç', () => {
     expect(v.hand.map((c) => c.id).sort()).toEqual(m.round.hands[1].map((c) => c.id).sort());
     for (const seat of [0, 2, 3]) for (const c of m.round.hands[seat]) expect(json).not.toContain(`"${c.id}"`);
     expect(v.handCounts).toEqual([13, 13, 13, 13]);
+  });
+});
+
+describe('açık eş (eşli: ihalecinin eşi kartlarını açar, o eli ihaleci oynar)', () => {
+  /** Koltuk 0 ihaleyi 8 ile alır, Maça koz; açık eş koltuk 2. */
+  const setup = (rules = TEAM) => {
+    let s = createBatakMatch(rules, seededRng(11), 3);
+    s = applyBatak(s, 0, { type: 'bid', value: 8 });
+    for (const seat of [1, 2, 3]) s = applyBatak(s, seat, { type: 'pass' });
+    return s;
+  };
+
+  it('kartlar koz seçilene kadar kapalı, sonra herkese açık', () => {
+    const s = setup();
+    expect(batakViewFor(s, 1).dummySeat).toBeNull();
+    expect(batakViewFor(s, 1).dummyHand).toEqual([]);
+    const p = applyBatak(s, 0, { type: 'choose_trump', suit: 'S' });
+    for (const viewer of [0, 1, 2, 3]) {
+      const v = batakViewFor(p, viewer);
+      expect(v.dummySeat).toBe(2);
+      expect(v.dummyHand.map((c) => c.id).sort()).toEqual(p.round.hands[2].map((c) => c.id).sort());
+    }
+    // Rakiplerin kartları yine gizli.
+    const json = JSON.stringify(batakViewFor(p, 1));
+    for (const c of p.round.hands[3]) expect(json).not.toContain(`"${c.id}"`);
+  });
+
+  it('eşin sırasında eş oynayamaz; ihaleci eşin elinden oynar, kendi elinden oynayamaz', () => {
+    let s = applyBatak(setup(), 0, { type: 'choose_trump', suit: 'S' });
+    // 0 açar, 1 oynar, sıra 2'de (açık eş)
+    const lead = batakTimeoutCommand(s);
+    s = applyBatak(s, 0, lead);
+    s = applyBatak(s, 1, batakTimeoutCommand(s));
+    expect(s.round.activeSeat).toBe(2);
+    expect(actorOf(s.round, s.rules)).toBe(0);
+    const dummyCard = batakTimeoutCommand(s) as { type: 'play_card'; cardId: string };
+    expectCode(() => applyBatak(s, 2, dummyCard), 'NOT_YOUR_TURN');
+    expectCode(() => applyBatak(s, 0, { type: 'play_card', cardId: s.round.hands[0][0].id }), 'CARD_NOT_OWNED');
+    expect(batakViewFor(s, 0).legalCardIds).toContain(dummyCard.cardId);
+    expect(batakViewFor(s, 2).legalCardIds).toEqual([]);
+    const after = applyBatak(s, 0, dummyCard);
+    expect(after.round.hands[2]).toHaveLength(12);
+    expect(after.round.trick.map((p) => p.seat)).toEqual([0, 1, 2]);
+  });
+
+  it('kural kapalıyken eş kendi elini oynar ve kartları gizli kalır', () => {
+    let s = applyBatak(setup(buildBatakRules({ teamMode: true, openPartnerHand: false })), 0, { type: 'choose_trump', suit: 'S' });
+    expect(batakViewFor(s, 1).dummySeat).toBeNull();
+    s = applyBatak(s, 0, batakTimeoutCommand(s));
+    s = applyBatak(s, 1, batakTimeoutCommand(s));
+    expect(actorOf(s.round, s.rules)).toBe(2);
+    expect(applyBatak(s, 2, batakTimeoutCommand(s)).round.hands[2]).toHaveLength(12);
+  });
+
+  it('tekli oyunda açık eş yok', () => {
+    expect(buildBatakRules({ openPartnerHand: true }).play.openPartnerHand).toBe(false);
   });
 });

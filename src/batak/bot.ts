@@ -1,5 +1,5 @@
 // Batak botu. Yalnız kendi elini ve herkese açık bilgiyi (oynanmış kartlar, ihale) kullanır.
-import { isForcedBid, legalCards, minNextBid, partnerOf, resolveTrick } from './game.ts';
+import { dummySeatOf, isForcedBid, legalCards, minNextBid, partnerOf, resolveTrick } from './game.ts';
 import { SUITS, type BatakCommand, type BatakMatch, type Card, type PlayedCard, type Suit } from './types.ts';
 
 export interface BatakBotOptions {
@@ -98,7 +98,10 @@ function smartPlay(m: BatakMatch, legal: Card[]): Card {
 
   // Bir kart "patron" mu: aynı renkte daha yüksek, henüz oynanmamış ve bende olmayan kart kalmadı mı?
   const gone = new Set(r.played.map((c) => `${c.suit}${c.rank}`));
-  const mine = new Set(hand.map((c) => `${c.suit}${c.rank}`));
+  // Açık eş varsa ihaleci iki eli de bilir: eşin kartları da "bizde" sayılır.
+  const dummy = dummySeatOf(r, m.rules);
+  const known = dummy !== null && (dummy === seat || dummy === partner) ? [...hand, ...r.hands[partner]] : hand;
+  const mine = new Set(known.map((c) => `${c.suit}${c.rank}`));
   const isMaster = (c: Card) => {
     for (let k = c.rank + 1; k <= 14; k++) if (!gone.has(`${c.suit}${k}`) && !mine.has(`${c.suit}${k}`)) return false;
     return true;

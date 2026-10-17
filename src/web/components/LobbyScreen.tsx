@@ -265,6 +265,7 @@ function CreateBatakTable({ onDone }: { onDone: () => void }) {
     mustTrumpIfVoid: false,
     mustBeatIfPossible: false,
     allPassRedeal: false,
+    openPartnerHand: true,
     botLevel: 'normal',
   });
   const minChoices = opts.teamMode ? [7, 8] : [4, 5];
@@ -331,6 +332,12 @@ function CreateBatakTable({ onDone }: { onDone: () => void }) {
           <option value="easy">Kolay</option>
         </select>
       </label>
+      {opts.teamMode && (
+        <label className="check">
+          <input type="checkbox" checked={opts.openPartnerHand} onChange={(e) => setOpts({ ...opts, openPartnerHand: e.target.checked })} />
+          İhalecinin eşi kartlarını açar, o eli ihaleci oynar
+        </label>
+      )}
       <label className="check">
         <input type="checkbox" checked={opts.mustTrumpIfVoid} onChange={(e) => setOpts({ ...opts, mustTrumpIfVoid: e.target.checked })} />
         Renk yoksa koz atmak zorunlu

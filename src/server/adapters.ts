@@ -1,6 +1,6 @@
 // Oyun modülleri: maç yöneticisi (room.ts) oyundan bağımsızdır, her oyun bu arayüzle bağlanır.
 import { batakBotCommand } from '../batak/bot.ts';
-import { applyBatak, batakTimeoutCommand, batakViewFor, createBatakMatch, startNextBatakRound } from '../batak/game.ts';
+import { actorOf, applyBatak, batakTimeoutCommand, batakViewFor, createBatakMatch, startNextBatakRound } from '../batak/game.ts';
 import type { BatakRuleset } from '../batak/rules.ts';
 import type { BatakCommand, BatakMatch } from '../batak/types.ts';
 import { botNextCommand } from '../engine/bot.ts';
@@ -64,7 +64,8 @@ export function batakAdapter(rules: BatakRuleset): GameAdapter<BatakMatch, Batak
     status: (s) => s.status,
     version: (s) => s.stateVersion,
     roundNo: (s) => s.round.roundNo,
-    activeSeat: (s) => s.round.activeSeat,
+    // Hamleyi yapan oyuncu: açık eşin sırasında ihaleci (bot/zaman aşımı da ona göre işler).
+    activeSeat: (s) => actorOf(s.round, s.rules),
     // Her hamlede süre baştan başlar (ihale/koz/kart ayrı hamlelerdir).
     turnKey: (s) => `${s.round.roundNo}:${s.stateVersion}`,
     turnMs: (s) => (s.round.phase === 'PLAYING' ? s.rules.timers.playSeconds : s.rules.timers.bidSeconds) * 1000,

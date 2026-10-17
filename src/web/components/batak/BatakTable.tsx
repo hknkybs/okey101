@@ -14,7 +14,10 @@ type Pos = 'bottom' | 'left' | 'top' | 'right';
 export function BatakTable({ view }: { view: BatakClientView }) {
   const me = view.yourSeat;
   const team = view.rules.mode === 'partnership';
-  const myTurn = view.status === 'ACTIVE' && view.activeSeat === me;
+  // Hamle bende mi (açık eşin sırasında ihaleci hamle yapar).
+  const myTurn = view.status === 'ACTIVE' && view.actorSeat === me;
+  const dummy = view.dummySeat;
+  const iAmDummy = dummy === me;
   const [selected, setSelected] = useState<string | null>(null);
   const [showScores, setShowScores] = useState(false);
   const [showLeave, setShowLeave] = useState(false);
@@ -25,7 +28,9 @@ export function BatakTable({ view }: { view: BatakClientView }) {
 
   const hand = useMemo(() => sortHand(view.hand, view.trump), [view.hand, view.trump]);
   const legal = new Set(view.legalCardIds);
-  const canPlay = myTurn && view.phase === 'PLAYING';
+  const canPlay = myTurn && view.phase === 'PLAYING' && view.activeSeat === me;
+  const canPlayDummy = myTurn && view.phase === 'PLAYING' && dummy !== null && view.activeSeat === dummy;
+  const dummyHand = useMemo(() => sortHand(view.dummyHand, view.trump), [view.dummyHand, view.trump]);
 
   useEffect(() => setSelected(null), [view.stateVersion]);
 
@@ -36,7 +41,7 @@ export function BatakTable({ view }: { view: BatakClientView }) {
   }, [myTurn]);
 
   const tapCard = (id: string) => {
-    if (!canPlay || !legal.has(id)) return;
+    if (!(canPlay || canPlayDummy) || !legal.has(id)) return;
     if (selected === id) {
       sendCommand({ type: 'play_card', cardId: id });
       setSelected(null);
@@ -54,7 +59,9 @@ export function BatakTable({ view }: { view: BatakClientView }) {
     if (view.status !== 'ACTIVE') return 'Dağıtım bitti';
     if (view.phase === 'BIDDING') return myTurn ? (view.mustBid ? 'Herkes pas geçti: ihaleyi almalısınız' : 'Teklif verin ya da pas geçin') : `Teklif sırası: ${name(view.activeSeat)}`;
     if (view.phase === 'TRUMP') return myTurn ? 'Kozu seçin' : `${name(view.activeSeat)} kozu seçiyor…`;
-    if (!myTurn) return `Sıra: ${name(view.activeSeat)}`;
+    if (iAmDummy) return view.activeSeat === me ? 'Kartlarınız açık; eşiniz sizin yerinize oynuyor' : `Kartlarınız açık · Sıra: ${name(view.activeSeat)}`;
+    if (!myTurn) return view.activeSeat === dummy ? `${name(view.actorSeat)}, eşinin açık elinden oynuyor` : `Sıra: ${name(view.activeSeat)}`;
+    if (canPlayDummy) return selected ? 'Oynamak için karta tekrar dokunun' : 'Eşinizin açık elinden kart seçin (üstte)';
     return selected ? 'Oynamak için karta tekrar dokunun' : 'Kartınızı seçin';
   })();
 
@@ -107,6 +114,29 @@ export function BatakTable({ view }: { view: BatakClientView }) {
               {view.trickNo}. el
             </>
           )}
+        </div>
+      )}
+
+      {dummy !== null && !iAmDummy && (
+        <div className={`dummy-strip ${canPlayDummy ? 'can' : ''}`} aria-label={`${name(dummy)} açık eli`}>
+          <div className="dl small">
+            {name(dummy)}
+            {team && dummy === partnerOf(me) ? ' (eşiniz)' : ''} · açık el
+            {canPlayDummy && <strong> — sıra bu elde</strong>}
+          </div>
+          <div className="dummy-cards">
+            {dummyHand.map((c) => (
+              <CardView
+                key={c.id}
+                card={c}
+                size="dummy"
+                selected={selected === c.id}
+                disabled={!canPlayDummy || !legal.has(c.id)}
+                dim={canPlayDummy && !legal.has(c.id)}
+                onClick={canPlayDummy ? () => tapCard(c.id) : undefined}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -170,6 +200,9 @@ export function BatakTable({ view }: { view: BatakClientView }) {
       )}
 
       <div className="my-info small">
+        <span className={`status-inline ${myTurn ? 'mine' : ''}`} aria-hidden>
+          {statusText}
+        </span>
         <span>
           <strong>{name(me)}</strong>
           {bidOf(me) && view.phase === 'BIDDING' ? ` · teklif: ${bidOf(me)}` : ''}
@@ -229,6 +262,7 @@ function BatakSeat({ view, seat, pos, bid }: { view: BatakClientView; seat: numb
         {p.botLevel === 'easy' && <span className="chip tiny">Kolay</span>}
         {view.phase === 'BIDDING' && bid && <span className={`chip tiny ${bid === 'Pas' ? '' : 'ok'}`}>{bid}</span>}
         {view.bidder === seat && view.phase !== 'BIDDING' && <span className="chip tiny ok">İhale {view.highBid}</span>}
+        {view.dummySeat === seat && <span className="chip tiny">Açık el</span>}
       </div>
       <div className="meta small">
         <span>

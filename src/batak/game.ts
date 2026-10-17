@@ -77,6 +77,20 @@ export const minNextBid = (r: BatakRound, rules: BatakRuleset) =>
 export const isForcedBid = (r: BatakRound, rules: BatakRuleset) =>
   rules.bidding.allPass === 'force_last' && r.highBid === null && r.passed.filter(Boolean).length === 3;
 
+// ───────────────────────── Açık eş (el açma) ─────────────────────────
+
+/** Kartları açılmış eş koltuğu: eşli + kural açık + koz seçildiyse ihalecinin eşi. */
+export function dummySeatOf(r: BatakRound, rules: BatakRuleset): number | null {
+  if (rules.mode !== 'partnership' || !rules.play.openPartnerHand) return null;
+  if (r.bidder === null || r.trump === null) return null;
+  return partnerOf(r.bidder);
+}
+
+/** Aktif koltuğun hamlesini kim yapar: açık eşin sırası geldiğinde ihaleci. */
+export function actorOf(r: BatakRound, rules: BatakRuleset, seat = r.activeSeat): number {
+  return dummySeatOf(r, rules) === seat ? r.bidder! : seat;
+}
+
 // ───────────────────────── Kart kuralları ─────────────────────────
 
 /** Elin kazananı: koz varsa en yüksek koz, yoksa açılan renkteki en yüksek kart. */
@@ -136,7 +150,8 @@ function rejectReason(card: Card, hand: Card[], trick: PlayedCard[], trump: Suit
  */
 export function applyBatak(m: BatakMatch, seat: number, cmd: BatakCommand, rng?: Rng): BatakMatch {
   if (m.status !== 'ACTIVE') throw new BatakError('MATCH_NOT_ACTIVE');
-  if (m.round.activeSeat !== seat) throw new BatakError('NOT_YOUR_TURN');
+  // `seat` hamleyi yapan oyuncudur; açık eşin sırasında bu ihalecidir ve kart eşin elinden oynanır.
+  if (actorOf(m.round, m.rules) !== seat) throw new BatakError('NOT_YOUR_TURN');
   if (!cmd || typeof cmd !== 'object') throw new BatakError('BAD_COMMAND');
   const n = structuredClone(m);
   const r = n.round;
@@ -172,10 +187,12 @@ export function applyBatak(m: BatakMatch, seat: number, cmd: BatakCommand, rng?:
       r.phase = 'PLAYING';
       r.activeSeat = r.bidder!; // ilk eli ihaleci açar
       n.lastAction = { seat, text: `kozu ${SUIT_NAME[cmd.suit]} seçti` };
+      if (dummySeatOf(r, rules) !== null) n.lastAction.text += '; eşinin kartları açıldı';
       break;
     }
     case 'play_card': {
       if (r.phase !== 'PLAYING') throw new BatakError('WRONG_PHASE');
+      seat = r.activeSeat; // kartı oynanan koltuk (açık eşte ihalecinin eşi)
       const hand = r.hands[seat];
       const card = hand.find((c) => c.id === cmd.cardId);
       if (!card) throw new BatakError('CARD_NOT_OWNED');
@@ -336,8 +353,13 @@ export interface BatakView {
   trickNo: number;
   tricksWon: number[];
   lastTrick: BatakRound['lastTrick'];
-  /** Sıra sizdeyse oynayabileceğiniz kartlar. */
+  /** Sıra sizdeyse (kendi ya da açık eşinizin elinden) oynayabileceğiniz kartlar. */
   legalCardIds: string[];
+  /** Hamleyi yapacak oyuncu (açık eşin sırasında ihaleci). */
+  actorSeat: number;
+  /** Kartları açılmış eş koltuğu ve eli (herkese açık). */
+  dummySeat: number | null;
+  dummyHand: Card[];
   totals: number[];
   lastAction: BatakMatch['lastAction'];
   lastResult: BatakRoundResult | null;
@@ -348,7 +370,9 @@ export interface BatakView {
 /** Yalnız kendi eli + herkese açık bilgi. Rakiplerin ve eşin kartları asla gönderilmez. */
 export function batakViewFor(m: BatakMatch, seat: number): BatakView {
   const r = m.round;
-  const myTurn = m.status === 'ACTIVE' && r.activeSeat === seat && r.phase === 'PLAYING';
+  const actor = actorOf(r, m.rules);
+  const dummy = dummySeatOf(r, m.rules);
+  const myTurn = m.status === 'ACTIVE' && actor === seat && r.phase === 'PLAYING';
   return {
     game: 'batak',
     yourSeat: seat,
@@ -373,7 +397,10 @@ export function batakViewFor(m: BatakMatch, seat: number): BatakView {
     trickNo: r.trickNo,
     tricksWon: r.tricksWon,
     lastTrick: r.lastTrick,
-    legalCardIds: myTurn ? legalCards(r.hands[seat], r.trick, r.trump!, r.trumpBroken, m.rules).map((c) => c.id) : [],
+    legalCardIds: myTurn ? legalCards(r.hands[r.activeSeat], r.trick, r.trump!, r.trumpBroken, m.rules).map((c) => c.id) : [],
+    actorSeat: actor,
+    dummySeat: dummy,
+    dummyHand: dummy !== null ? r.hands[dummy] : [],
     totals: m.totals,
     lastAction: m.lastAction,
     lastResult: m.status !== 'ACTIVE' ? (m.history[m.history.length - 1] ?? null) : null,

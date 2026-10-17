@@ -3,7 +3,7 @@ import type { Card } from '../../../batak/types.ts';
 
 interface Props {
   card: Card;
-  size?: 'hand' | 'trick' | 'mini';
+  size?: 'hand' | 'trick' | 'mini' | 'dummy';
   selected?: boolean;
   disabled?: boolean;
   dim?: boolean;

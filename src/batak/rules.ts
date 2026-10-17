@@ -15,6 +15,8 @@ export interface BatakRuleset {
     mustTrumpIfVoid: boolean; // açılan renk yoksa koz atma zorunlu
     mustBeatIfPossible: boolean; // eli geçebiliyorsa geçmek zorunlu (yükseltme)
     mustLeadTrumpBeforeBroken: boolean; // koz açılmadan kozla çıkılamaz (yalnız koz kaldıysa serbest)
+    /** Eşli: koz seçilince ihalecinin eşi kartlarını açar (herkes görür), eşin elini ihaleci oynar. */
+    openPartnerHand: boolean;
   };
   scoring: {
     nonBidderPerTrick: number; // tekli: ihale dışı oyuncuya el başına puan
@@ -38,6 +40,7 @@ export interface BatakTableOptions {
   mustTrumpIfVoid?: boolean;
   mustBeatIfPossible?: boolean;
   allPassRedeal?: boolean;
+  openPartnerHand?: boolean;
   botLevel?: BotLevel;
 }
 
@@ -56,6 +59,7 @@ export function buildBatakRules(o: BatakTableOptions = {}): BatakRuleset {
       mustTrumpIfVoid: !!o.mustTrumpIfVoid,
       mustBeatIfPossible: !!o.mustBeatIfPossible,
       mustLeadTrumpBeforeBroken: true,
+      openPartnerHand: mode === 'partnership' && (o.openPartnerHand ?? true),
     },
     scoring: { nonBidderPerTrick: 10, opponentsPerTrick: 0 },
     match: { roundLimit: clamp(o.roundLimit ?? 10, 1, 11) },
@@ -78,6 +82,7 @@ export function normalizeBatakOptions(o: BatakTableOptions = {}): Required<Batak
     mustTrumpIfVoid: r.play.mustTrumpIfVoid,
     mustBeatIfPossible: r.play.mustBeatIfPossible,
     allPassRedeal: r.bidding.allPass === 'redeal',
+    openPartnerHand: r.mode === 'partnership' ? r.play.openPartnerHand : (o.openPartnerHand ?? true),
     botLevel: o.botLevel === 'easy' ? 'easy' : 'normal',
   };
 }
@@ -97,6 +102,9 @@ export function describeBatakRules(r: BatakRuleset): string[] {
       ? 'Herkes pas geçerse kartlar yeniden dağıtılır'
       : 'Herkes pas geçerse son oyuncu minimum teklifle ihaleyi almak zorunda',
     'İhaleyi alan kozu seçer ve ilk eli o açar',
+    ...(partner && r.play.openPartnerHand
+      ? ['Koz seçilince ihalecinin eşi kartlarını açar (herkes görür); eşin elini ihaleci oynar, eş izler']
+      : []),
     'Renge uymak zorunlu',
     r.play.mustTrumpIfVoid ? 'Açılan renk yoksa koz atmak zorunlu' : 'Açılan renk yoksa istenen kart atılabilir',
     r.play.mustBeatIfPossible ? 'Eli geçebiliyorsanız geçmek zorunlu (yükseltme)' : 'Yükseltme zorunluluğu yok',
