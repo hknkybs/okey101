@@ -35,6 +35,10 @@ Butona basıp Render hesabıyla giriş yapın; `render.yaml` tek bir web servisi
 
 Docker destekleyen başka bir platform (Fly.io, Railway vb.) için `Dockerfile` hazırdır; uygulama `PORT` (varsayılan 8080) üzerinden dinler.
 
+## Görünüm temaları
+
+Ana ekrandaki **Görünüm** seçimiyle **Klasik** (yeşil çuha) ve **8-bit** arasında geçilir; seçim cihazda hatırlanır. 8-bit tema yalnız görünümü değiştirir: Sweetie-16 paleti (kırmızı, yeşil, mavi ağırlıklı), keskin köşeler, piksel çerçeveli taş ve kartlar, basınca inen "arcade" butonlar. Piksel yazı tipi Press Start 2P uygulamaya gömülüdür (Türkçe harfleri içerir, SIL OFL lisanslı — `src/web/public/fonts/LICENSE.txt`); uzun metinler okunaklı kalsın diye normal yazı tipiyle gösterilir. Tema stilleri `src/web/theme-pixel.css` dosyasındadır ve yalnız `<html data-theme="pixel">` iken etkindir.
+
 ## Mimari
 
 ```

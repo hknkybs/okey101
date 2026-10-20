@@ -3,6 +3,7 @@ import type { BatakTableOptions } from '../../batak/rules.ts';
 import type { BotLevel, TableOptions } from '../../engine/rules.ts';
 import { GAME_NAME, type GameId } from '../../shared/protocol.ts';
 import { send, setSection, useApp } from '../net.ts';
+import { setTheme, useTheme } from '../theme.ts';
 
 /** Hamle süresi seçenekleri (sn). Çocuklarla oynayanlar için 90 ve 120 de var. */
 const TURN_SECONDS = [15, 20, 30, 45, 60, 90, 120];
@@ -11,6 +12,7 @@ const TURN_SECONDS = [15, 20, 30, 45, 60, 90, 120];
 export function LobbyScreen({ game }: { game: GameId }) {
   const app = useApp();
   const lobbies = app.lobbies.filter((l) => l.game === game);
+  const theme = useTheme();
   const [code, setCode] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [quickTeam, setQuickTeam] = useState(false);
@@ -46,6 +48,18 @@ export function LobbyScreen({ game }: { game: GameId }) {
           </button>
         )}
       </header>
+
+      <div className="theme-row">
+        <span className="small muted">Görünüm</span>
+        <div className="seg" role="group" aria-label="Görünüm teması">
+          <button className={theme === 'classic' ? 'on' : ''} aria-pressed={theme === 'classic'} onClick={() => setTheme('classic')}>
+            Klasik
+          </button>
+          <button className={theme === 'pixel' ? 'on' : ''} aria-pressed={theme === 'pixel'} onClick={() => setTheme('pixel')}>
+            8-bit
+          </button>
+        </div>
+      </div>
 
       {game === 'okey' ? (
         <button className="game-switch" onClick={() => setSection('batak')}>

@@ -1571,3 +1571,14 @@ button.pcard.clickable {
   padding: 0 5px;
   white-space: nowrap;
 }
+
+.theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: -6px;
+}
+.theme-row .seg button {
+  min-height: 34px;
+}

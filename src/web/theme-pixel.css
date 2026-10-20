@@ -1,0 +1,618 @@
+/*
+ * 8-bit tema. Yalnız <html data-theme="pixel"> iken etkindir; klasik görünüme dokunmaz.
+ * Palet: Sweetie-16 (kırmızı, yeşil, mavi ağırlıklı). Kenarlar sert, köşeler keskin,
+ * gölge yerine piksel alt kenar. Piksel yazı yalnız sayı, başlık ve butonlarda; uzun metin okunaklı kalır.
+ */
+/* Piksel yazı tipi uygulamaya gömülü (SIL OFL, bkz. public/fonts/LICENSE.txt); Türkçe harfleri içerir. */
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/press-start-2p-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2212;
+}
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/press-start-2p-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+1E00-1EFF;
+}
+
+:root[data-theme='pixel'] {
+  --px-ink: #1a1c2c;
+  --px-plum: #5d275d;
+  --px-red: #b13e53;
+  --px-orange: #ef7d57;
+  --px-yellow: #ffcd75;
+  --px-lime: #a7f070;
+  --px-green: #38b764;
+  --px-teal: #257179;
+  --px-navy: #29366f;
+  --px-blue: #3b5dc9;
+  --px-sky: #41a6f6;
+  --px-cyan: #73eff7;
+  --px-white: #f4f4f4;
+  --px-silver: #94b0c2;
+  --px-slate: #566c86;
+  --px-dark: #333c57;
+  --px-font: 'Press Start 2P', ui-monospace, monospace;
+
+  --felt: var(--px-ink);
+  --felt-2: var(--px-ink);
+  --felt-3: var(--px-navy);
+  --ink: var(--px-white);
+  --muted: var(--px-silver);
+  --card: var(--px-navy);
+  --line: var(--px-dark);
+  --tile: var(--px-white);
+  --tile-edge: var(--px-silver);
+  --accent: var(--px-yellow);
+  --danger: var(--px-red);
+  --good: var(--px-lime);
+  --c-R: var(--px-red);
+  --c-Y: var(--px-orange);
+  --c-B: var(--px-blue);
+  --c-K: var(--px-dark);
+  --radius: 0px;
+}
+
+/* ───────── zemin ───────── */
+[data-theme='pixel'] body {
+  background-color: var(--px-ink);
+  background-image:
+    linear-gradient(45deg, #1f2236 25%, transparent 25%, transparent 75%, #1f2236 75%),
+    linear-gradient(45deg, #1f2236 25%, transparent 25%, transparent 75%, #1f2236 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+}
+
+/* ───────── yazı ───────── */
+[data-theme='pixel'] h1,
+[data-theme='pixel'] h2,
+[data-theme='pixel'] h3,
+[data-theme='pixel'] .btn,
+[data-theme='pixel'] .chip,
+[data-theme='pixel'] .seg button,
+[data-theme='pixel'] .code,
+[data-theme='pixel'] .game-switch strong,
+[data-theme='pixel'] .gs-icon,
+[data-theme='pixel'] .seat-badge .nm,
+[data-theme='pixel'] .seat-badge .score,
+[data-theme='pixel'] .seat-name,
+[data-theme='pixel'] .timer,
+[data-theme='pixel'] .trump-chip,
+[data-theme='pixel'] .trick-caption,
+[data-theme='pixel'] .cut-tag,
+[data-theme='pixel'] .tile .badge,
+[data-theme='pixel'] .tile .okey-mark,
+[data-theme='pixel'] .score-table th,
+[data-theme='pixel'] .ranking li,
+[data-theme='pixel'] .toast {
+  font-family: var(--px-font);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+[data-theme='pixel'] h1 {
+  font-size: 1rem;
+  color: var(--px-yellow);
+  text-shadow: 3px 3px 0 var(--px-red);
+}
+[data-theme='pixel'] .brand h1 {
+  font-size: 1.6rem;
+}
+[data-theme='pixel'] h2 {
+  font-size: 0.75rem;
+  color: var(--px-cyan);
+}
+[data-theme='pixel'] h3 {
+  font-size: 0.7rem;
+  color: var(--px-yellow);
+}
+[data-theme='pixel'] .seat-badge .nm,
+[data-theme='pixel'] .seat-name {
+  font-size: 0.6rem;
+}
+[data-theme='pixel'] .score-table th {
+  font-size: 0.55rem;
+}
+[data-theme='pixel'] .ranking li {
+  font-size: 0.6rem;
+  line-height: 2;
+}
+[data-theme='pixel'] .toast {
+  font-size: 0.6rem;
+}
+[data-theme='pixel'] .code {
+  font-size: 1.2rem;
+  color: var(--px-yellow);
+  letter-spacing: 0.15em;
+}
+
+/* ───────── butonlar ───────── */
+[data-theme='pixel'] .btn {
+  border-radius: 0;
+  border: 3px solid var(--px-ink);
+  background: var(--px-blue);
+  color: var(--px-white);
+  box-shadow: 0 4px 0 var(--px-ink);
+  font-size: 0.6rem;
+  transition: transform 0.05s;
+}
+[data-theme='pixel'] .btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--px-ink);
+}
+[data-theme='pixel'] .btn.primary {
+  background: var(--px-green);
+  color: var(--px-ink);
+}
+[data-theme='pixel'] .btn.danger {
+  background: var(--px-red);
+  color: var(--px-white);
+}
+[data-theme='pixel'] .btn.ghost {
+  background: var(--px-dark);
+  color: var(--px-white);
+}
+[data-theme='pixel'] .btn.ghost.on {
+  background: var(--px-yellow);
+  color: var(--px-ink);
+  border-color: var(--px-ink);
+}
+[data-theme='pixel'] .btn.small {
+  font-size: 0.55rem;
+}
+[data-theme='pixel'] .btn.tiny {
+  font-size: 0.5rem;
+  box-shadow: 0 3px 0 var(--px-ink);
+}
+[data-theme='pixel'] .btn.big {
+  font-size: 0.7rem;
+  padding: 16px 12px;
+}
+[data-theme='pixel'] .btn:disabled {
+  opacity: 0.5;
+}
+[data-theme='pixel'] .link {
+  color: var(--px-yellow);
+}
+[data-theme='pixel'] .quick-sub {
+  font-family: system-ui, sans-serif;
+  font-size: 0.75rem;
+  margin-top: 6px;
+}
+[data-theme='pixel'] .seg {
+  border-radius: 0;
+  border: 3px solid var(--px-ink);
+  box-shadow: 0 4px 0 var(--px-ink);
+  background: var(--px-dark);
+}
+[data-theme='pixel'] .seg button {
+  font-size: 0.55rem;
+  color: var(--px-silver);
+}
+[data-theme='pixel'] .seg button.on {
+  background: var(--px-yellow);
+  color: var(--px-ink);
+}
+[data-theme='pixel'] .chip {
+  border-radius: 0;
+  border: 2px solid var(--px-ink);
+  background: var(--px-dark);
+  color: var(--px-white);
+  font-size: 0.5rem;
+  padding: 3px 6px;
+}
+[data-theme='pixel'] .chip.tiny {
+  font-size: 0.45rem;
+  padding: 2px 4px;
+}
+[data-theme='pixel'] .chip.ok {
+  background: var(--px-green);
+  color: var(--px-ink);
+}
+[data-theme='pixel'] .chip.partner {
+  background: var(--px-lime);
+  color: var(--px-ink);
+}
+
+/* ───────── kutular ───────── */
+[data-theme='pixel'] .card,
+[data-theme='pixel'] .seat-card,
+[data-theme='pixel'] .seat-badge,
+[data-theme='pixel'] .modal,
+[data-theme='pixel'] .staging,
+[data-theme='pixel'] .dummy-strip,
+[data-theme='pixel'] .auto-banner,
+[data-theme='pixel'] .toast {
+  border-radius: 0;
+  border: 3px solid var(--px-ink);
+  background: var(--px-navy);
+  box-shadow: 0 4px 0 var(--px-ink);
+}
+[data-theme='pixel'] .seat-card.you {
+  border-color: var(--px-yellow);
+}
+[data-theme='pixel'] .seat-badge.active {
+  border-color: var(--px-yellow);
+  box-shadow: 0 4px 0 var(--px-ink);
+  animation: px-blink 0.8s steps(2) infinite;
+}
+@keyframes px-blink {
+  50% {
+    border-color: var(--px-orange);
+  }
+}
+[data-theme='pixel'] .seat-badge.team-0,
+[data-theme='pixel'] .seat-badge.team-1 {
+  border-left-width: 6px;
+}
+[data-theme='pixel'] .team-0 {
+  --team: var(--px-yellow);
+}
+[data-theme='pixel'] .team-1 {
+  --team: var(--px-sky);
+}
+[data-theme='pixel'] .staging {
+  background: var(--px-teal);
+  border-style: solid;
+}
+[data-theme='pixel'] .dummy-strip.can {
+  border-color: var(--px-yellow);
+  background: var(--px-plum);
+}
+[data-theme='pixel'] .auto-banner {
+  background: var(--px-red);
+}
+[data-theme='pixel'] .toast.error {
+  background: var(--px-red);
+}
+[data-theme='pixel'] .modal {
+  border-width: 4px;
+}
+[data-theme='pixel'] .modal-back {
+  background: rgba(26, 28, 44, 0.75);
+}
+[data-theme='pixel'] .score-table th,
+[data-theme='pixel'] .score-table td {
+  border-bottom: 2px solid var(--px-dark);
+}
+[data-theme='pixel'] .lobby-list li {
+  border-top: 2px solid var(--px-dark);
+}
+[data-theme='pixel'] input,
+[data-theme='pixel'] select {
+  border-radius: 0;
+  border: 3px solid var(--px-ink);
+  background: var(--px-ink);
+  color: var(--px-white);
+}
+[data-theme='pixel'] input[type='checkbox'] {
+  accent-color: var(--px-green);
+}
+[data-theme='pixel'] .game-switch {
+  border-radius: 0;
+  border: 3px solid var(--px-ink);
+  background: var(--px-red);
+  box-shadow: 0 4px 0 var(--px-ink);
+}
+[data-theme='pixel'] .game-switch.back {
+  background: var(--px-blue);
+}
+[data-theme='pixel'] .game-switch strong {
+  font-size: 0.65rem;
+  color: var(--px-white);
+}
+[data-theme='pixel'] .game-switch .muted {
+  color: var(--px-white);
+  opacity: 0.85;
+}
+[data-theme='pixel'] .game-switch .gs-icon {
+  border-radius: 0;
+  border: 3px solid var(--px-ink);
+  font-size: 0.7rem;
+  background: var(--px-white);
+}
+[data-theme='pixel'] .conn-banner {
+  font-family: var(--px-font);
+  font-size: 0.55rem;
+  padding: 8px;
+}
+
+/* ───────── zamanlayıcı ───────── */
+[data-theme='pixel'] .timer-bar {
+  height: 8px;
+  border-radius: 0;
+  border: 2px solid var(--px-ink);
+  background: var(--px-ink);
+}
+[data-theme='pixel'] .timer-bar > div {
+  background: var(--px-lime);
+  transition: width 0.25s steps(4);
+}
+[data-theme='pixel'] .timer-bar > div.low {
+  background: var(--px-red);
+}
+[data-theme='pixel'] .timer {
+  font-size: 0.6rem;
+  color: var(--px-lime);
+}
+[data-theme='pixel'] .timer.low {
+  color: var(--px-red);
+}
+[data-theme='pixel'] .action-bar .status.mine,
+[data-theme='pixel'] .batak-panel .status.mine,
+[data-theme='pixel'] .status-inline.mine {
+  color: var(--px-yellow);
+}
+
+/* ───────── 101 taşları ───────── */
+[data-theme='pixel'] .tile {
+  border-radius: 0;
+  background: var(--px-white);
+  border: 3px solid var(--px-ink);
+  box-shadow:
+    inset 0 calc(var(--tw) * -0.12) 0 var(--px-silver),
+    0 3px 0 var(--px-ink);
+  padding-top: calc(var(--tw) * 0.14);
+}
+[data-theme='pixel'] .tile .num {
+  font-family: var(--px-font);
+  font-size: calc(var(--tw) * 0.36);
+  letter-spacing: -0.05em;
+}
+[data-theme='pixel'] .tile .sym {
+  font-size: calc(var(--tw) * 0.28);
+  margin-top: calc(var(--tw) * 0.12);
+}
+[data-theme='pixel'] .tile.c-R {
+  color: var(--px-red);
+}
+[data-theme='pixel'] .tile.c-Y {
+  color: var(--px-orange);
+}
+[data-theme='pixel'] .tile.c-B {
+  color: var(--px-blue);
+}
+[data-theme='pixel'] .tile.c-K {
+  color: var(--px-dark);
+}
+[data-theme='pixel'] .c-R {
+  color: #ff6b7d;
+}
+[data-theme='pixel'] .c-Y {
+  color: var(--px-orange);
+}
+[data-theme='pixel'] .c-B {
+  color: var(--px-sky);
+}
+[data-theme='pixel'] .c-K {
+  color: var(--px-silver);
+}
+[data-theme='pixel'] .tile.fake {
+  background: #ffe6a8;
+}
+[data-theme='pixel'] .tile.okey {
+  border-color: var(--px-yellow);
+  box-shadow:
+    inset 0 calc(var(--tw) * -0.12) 0 var(--px-silver),
+    0 3px 0 var(--px-ink);
+}
+[data-theme='pixel'] .tile .okey-mark {
+  border-radius: 0;
+  background: var(--px-yellow);
+  font-size: calc(var(--tw) * 0.18);
+  padding: 1px;
+}
+[data-theme='pixel'] .tile .badge {
+  border-radius: 0;
+  border: 2px solid var(--px-ink);
+  font-size: 7px;
+  font-weight: 400;
+}
+[data-theme='pixel'] .tile.selected {
+  transform: translateY(-8px);
+  border-color: var(--px-sky);
+  box-shadow:
+    inset 0 calc(var(--tw) * -0.12) 0 var(--px-silver),
+    0 3px 0 var(--px-sky),
+    0 11px 0 var(--px-ink);
+}
+[data-theme='pixel'] .tile.highlight {
+  outline: 3px solid var(--px-yellow);
+  outline-offset: 1px;
+  box-shadow: 0 3px 0 var(--px-ink);
+}
+[data-theme='pixel'] .tile.back {
+  background-color: var(--px-red);
+  background-image:
+    linear-gradient(45deg, var(--px-plum) 25%, transparent 25%, transparent 75%, var(--px-plum) 75%),
+    linear-gradient(45deg, var(--px-plum) 25%, transparent 25%, transparent 75%, var(--px-plum) 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 4px 4px;
+  border-color: var(--px-ink);
+  box-shadow: 0 3px 0 var(--px-ink);
+}
+[data-theme='pixel'] .tile.back .num {
+  font-size: 11px;
+  color: var(--px-white);
+  text-shadow: 2px 2px 0 var(--px-ink);
+}
+[data-theme='pixel'] .tile.empty {
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px dashed var(--px-dark);
+  box-shadow: none;
+}
+[data-theme='pixel'] .stock.can .tile {
+  outline: 3px solid var(--px-yellow);
+  box-shadow: 0 3px 0 var(--px-ink);
+}
+[data-theme='pixel'] .rack {
+  background: var(--px-dark);
+  border-top: 4px solid var(--px-slate);
+  box-shadow: inset 0 4px 0 var(--px-ink);
+}
+[data-theme='pixel'] .rack .slot {
+  border-radius: 0;
+  background: var(--px-ink);
+}
+[data-theme='pixel'] .meld {
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid transparent;
+}
+[data-theme='pixel'] .meld.target {
+  border-color: var(--px-yellow);
+  background: rgba(255, 205, 117, 0.2);
+}
+[data-theme='pixel'] .meld.swap {
+  border-color: var(--px-sky);
+}
+[data-theme='pixel'] .swap-hint {
+  border-radius: 0;
+  font-family: var(--px-font);
+  font-size: 7px;
+  background: var(--px-sky);
+  color: var(--px-ink);
+}
+[data-theme='pixel'] .hand-stats {
+  font-family: var(--px-font);
+  font-size: 0.5rem;
+  gap: 10px;
+}
+
+/* ───────── Batak kartları ───────── */
+[data-theme='pixel'] .pcard {
+  border-radius: 0;
+  background: var(--px-white);
+  border: 3px solid var(--px-ink);
+  box-shadow: 0 3px 0 var(--px-ink);
+  color: var(--px-ink);
+}
+[data-theme='pixel'] .pcard.red {
+  color: var(--px-red);
+}
+[data-theme='pixel'] .pcard .rk {
+  font-family: var(--px-font);
+  font-size: calc(var(--cw) * 0.24);
+}
+[data-theme='pixel'] .pcard .st {
+  font-size: calc(var(--cw) * 0.26);
+  margin-top: 2px;
+}
+[data-theme='pixel'] .pcard.selected {
+  transform: translateY(-12px);
+  border-color: var(--px-sky);
+  box-shadow:
+    0 3px 0 var(--px-sky),
+    0 12px 0 var(--px-ink);
+}
+[data-theme='pixel'] .pcard.highlight {
+  outline: 3px solid var(--px-yellow);
+  outline-offset: 1px;
+}
+[data-theme='pixel'] .pcard.dim {
+  opacity: 0.35;
+}
+[data-theme='pixel'] .pcard.back {
+  background-color: var(--px-blue);
+  background-image:
+    linear-gradient(45deg, var(--px-navy) 25%, transparent 25%, transparent 75%, var(--px-navy) 75%),
+    linear-gradient(45deg, var(--px-navy) 25%, transparent 25%, transparent 75%, var(--px-navy) 75%);
+  background-size: 6px 6px;
+  background-position: 0 0, 3px 3px;
+  border-width: 2px;
+  box-shadow: none;
+}
+[data-theme='pixel'] .pcard.back .cnt {
+  font-family: var(--px-font);
+  font-size: 7px;
+  text-shadow: 1px 1px 0 var(--px-ink);
+}
+[data-theme='pixel'] .trick-area {
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.25);
+  border: 3px dashed var(--px-dark);
+}
+[data-theme='pixel'] .trick-caption,
+[data-theme='pixel'] .cut-tag {
+  border-radius: 0;
+  border: 2px solid var(--px-ink);
+  font-size: 0.5rem;
+}
+[data-theme='pixel'] .trick-caption {
+  background: var(--px-green);
+  color: var(--px-ink);
+}
+[data-theme='pixel'] .trump-chip {
+  border-radius: 0;
+  border: 2px solid var(--px-ink);
+  font-size: 0.55rem;
+  padding: 2px 6px;
+  background: var(--px-white);
+}
+[data-theme='pixel'] .trump-chip.red {
+  color: var(--px-red);
+}
+[data-theme='pixel'] .trump-btn {
+  background: var(--px-white);
+  color: var(--px-ink);
+}
+[data-theme='pixel'] .trump-btn.red {
+  color: var(--px-red);
+}
+[data-theme='pixel'] .trump-btn .small {
+  font-family: system-ui, sans-serif;
+}
+[data-theme='pixel'] .bid-btn {
+  background: var(--px-sky);
+  color: var(--px-ink);
+  font-size: 0.7rem;
+}
+[data-theme='pixel'] .batak-hand {
+  background: var(--px-dark);
+  border-top: 4px solid var(--px-slate);
+}
+[data-theme='pixel'] .chip.void {
+  background: var(--px-white);
+  color: var(--px-ink);
+}
+[data-theme='pixel'] .chip.void.red {
+  color: var(--px-red);
+}
+
+/* klavye odağı: piksel çerçeve */
+[data-theme='pixel'] button:focus-visible,
+[data-theme='pixel'] input:focus-visible,
+[data-theme='pixel'] select:focus-visible {
+  outline: 3px solid var(--px-cyan);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='pixel'] .seat-badge.active {
+    animation: none;
+  }
+}
+
+/* ───────── sıkışık yerler: piksel yazı geniş olduğu için ───────── */
+[data-theme='pixel'] .topbar .btn.small {
+  font-size: 0.5rem;
+  padding: 6px 8px;
+  min-height: 34px;
+}
+[data-theme='pixel'] .opponents .seat-badge .nm,
+[data-theme='pixel'] .bseat.left .nm,
+[data-theme='pixel'] .bseat.right .nm {
+  font-size: 0.48rem;
+}
+/* Renk sembolleri (♠♥♦♣) piksel yazıda yok; sistem yazısıyla büyük ve net kalsın. */
+[data-theme='pixel'] .trump-chip {
+  font-family: system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+}

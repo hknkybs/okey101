@@ -85,7 +85,7 @@ export function GameTable({ view }: { view: ClientGameView }) {
   // Sıra bize geldiğinde titreşim + duyuru.
   const wasMyTurn = useRef(false);
   useEffect(() => {
-    if (myTurn && !wasMyTurn.current) navigator.vibrate?.(60);
+    if (myTurn && !wasMyTurn.current && navigator.userActivation?.hasBeenActive) navigator.vibrate?.(60);
     wasMyTurn.current = myTurn;
   }, [myTurn]);
 
